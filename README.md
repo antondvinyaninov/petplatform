@@ -1,6 +1,6 @@
-# Main Project - Главная страница
+# PetPlatform - Социальная сеть для владельцев домашних животных
 
-Главная страница социальной сети для владельцев домашних животных.
+Полнофункциональная социальная платформа для владельцев домашних животных с поддержкой постов, мессенджера, организаций, объявлений и многого другого.
 
 ## 🚀 Быстрый старт
 
@@ -13,6 +13,13 @@
 ./run
 ```
 
+Скрипт автоматически:
+- Проверит подключение к PostgreSQL
+- Проверит подключение к S3 хранилищу
+- Проверит доступность API Gateway
+- Запустит Backend с hot reload (через air)
+- Запустит Frontend (Next.js)
+
 **Простой запуск:**
 ```bash
 ./run-simple
@@ -20,16 +27,10 @@
 
 **Ручной запуск:**
 ```bash
-# 1. Запустить Auth Service
-cd ../auth/backend && go run main.go &
-
-# 2. Запустить PetBase Service
-cd ../petbase/backend && go run main.go &
-
-# 3. Запустить Main Backend
+# 1. Запустить Backend
 cd backend && go run main.go &
 
-# 4. Запустить Main Frontend
+# 2. Запустить Frontend
 cd frontend && npm run dev &
 ```
 
@@ -39,36 +40,43 @@ cd frontend && npm run dev &
 
 ```bash
 # Остановить все процессы на портах
-lsof -ti:7100,8100,8000,3000 | xargs kill -9
+lsof -ti:8000,3000 | xargs kill -9
 ```
 
 ## 📍 Сервисы и порты
 
 | Сервис | Порт | URL | Описание |
 |--------|------|-----|----------|
-| Main Frontend | 3000 | http://localhost:3000 | Главная страница (Next.js) |
-| Main Backend | 8000 | http://localhost:8000 | API главной страницы (Go) |
-| PetBase Service | 8100 | http://localhost:8100 | API данных о животных |
-| Auth Service | 7100 | http://localhost:7100 | Сервис авторизации |
+| Frontend | 3000 | http://localhost:3000 | Next.js приложение |
+| Backend | 8000 | http://localhost:8000 | Go API сервер |
+| API Gateway | - | https://my-projects-gateway-zp.crv1ic.easypanel.host | Удаленный Gateway (production) |
+| PostgreSQL | 5432 | 88.218.121.213:5432 | Удаленная база данных |
+| S3 Storage | - | https://zooplatforma.s3.firstvds.ru | FirstVDS S3 хранилище |
 
 ## 🏗️ Структура проекта
 
 ```
-main/
+petplatform/
 ├── frontend/           # Next.js приложение
-│   ├── app/           # Страницы и роуты
-│   ├── components/    # React компоненты
-│   ├── lib/           # Утилиты и хелперы
-│   ├── contexts/      # React контексты
+│   ├── app/           # Страницы и роуты (App Router)
+│   │   ├── (main)/   # Основные страницы
+│   │   ├── auth/     # Страница авторизации
+│   │   └── components/ # React компоненты
+│   ├── lib/           # API клиенты и утилиты
+│   ├── contexts/      # React контексты (Auth, Toast)
 │   └── types/         # TypeScript типы
 ├── backend/           # Go API сервер
 │   ├── handlers/      # HTTP обработчики
-│   ├── middleware/    # Middleware
+│   ├── middleware/    # Middleware (auth, CORS)
 │   ├── models/        # Модели данных
-│   └── main.go        # Точка входа
-├── run-main.sh        # Скрипт запуска (полный)
-├── run-main-simple.sh # Скрипт запуска (простой)
-└── README.md          # Эта документация
+│   ├── db/           # Подключение к PostgreSQL
+│   ├── storage/      # S3 интеграция
+│   ├── logger/       # Система логирования
+│   └── main.go       # Точка входа
+├── docs/             # Документация
+├── run               # Скрипт запуска (полный)
+├── run-simple        # Скрипт запуска (простой)
+└── README.md         # Эта документация
 ```
 
 ## 🔧 Разработка
@@ -109,75 +117,147 @@ go build -o main
 ./main
 ```
 
+## 📦 Основные возможности
+
+- 📝 **Посты и лента** - создание постов с фото, видео, опросами
+- 💬 **Мессенджер** - личные сообщения в реальном времени (WebSocket)
+- 👥 **Друзья** - система дружбы и подписок
+- 🐾 **Питомцы** - профили питомцев с фото и событиями
+- 🏢 **Организации** - приюты, клиники, зоомагазины
+- 📢 **Объявления** - поиск питомцев, помощь приютам
+- ⭐ **Избранное** - сохранение понравившихся питомцев
+- 🔔 **Уведомления** - в реальном времени
+- 🗺️ **Геолокация** - интеграция с Яндекс.Картами
+- 📊 **Аналитика** - статистика активности пользователей
+
 ## 📦 Зависимости
 
-### Обязательные сервисы
+### Backend (Go)
 
-Main проект зависит от следующих сервисов:
+- **Фреймворк**: net/http (стандартная библиотека)
+- **База данных**: PostgreSQL (github.com/lib/pq)
+- **JWT**: github.com/golang-jwt/jwt/v5
+- **WebSocket**: github.com/gorilla/websocket
+- **S3**: github.com/aws/aws-sdk-go
+- **UUID**: github.com/google/uuid
+- **Env**: github.com/joho/godotenv
 
-1. **Auth Service** (порт 7100) - авторизация и аутентификация
-2. **PetBase Service** (порт 8100) - данные о породах и видах животных
-3. **Database** - общая база данных SQLite
+### Frontend (Next.js)
 
-Эти сервисы **должны быть запущены** для корректной работы Main проекта.
-
-### Shared библиотека
-
-Main использует `@pet/shared` для общих компонентов, типов и хуков:
-
-```typescript
-import { User } from '@pet/shared/types';
-import { useAuth } from '@pet/shared/hooks';
-import { Button } from '@pet/shared/components/buttons';
-```
+- **Фреймворк**: Next.js 16 (App Router)
+- **React**: 19
+- **TypeScript**: 5
+- **Стили**: Tailwind CSS
+- **Карты**: Яндекс.Карты API
+- **Автокомплит**: DaData API
 
 ## 🔐 Переменные окружения
 
-Создайте файл `.env` в корне проекта:
+### Backend (.env)
 
 ```env
-# JWT Secret (должен совпадать с Auth Service)
-JWT_SECRET=your-secret-key-here
+# Server
+PORT=8000
 
-# Auth Service URL
-AUTH_SERVICE_URL=http://localhost:7100
+# JWT Secret
+JWT_SECRET=your-super-secret-key
 
-# PetBase Service URL
+# CORS
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:4000
+
+# Environment
+ENVIRONMENT=production
+
+# Service URLs
+AUTH_SERVICE_URL=https://my-projects-gateway-zp.crv1ic.easypanel.host
 PETBASE_SERVICE_URL=http://localhost:8100
 
-# Database path
-DATABASE_PATH=../../database/data.db
+# PostgreSQL Database
+DATABASE_URL=postgres://user:password@host:5432/dbname?sslmode=disable
+
+# S3 Storage (FirstVDS)
+USE_S3=true
+S3_ENDPOINT=https://s3.firstvds.ru
+S3_REGION=ru-1
+S3_BUCKET=your-bucket
+S3_ACCESS_KEY=your-access-key
+S3_SECRET_KEY=your-secret-key
+S3_CDN_URL=https://your-bucket.s3.firstvds.ru
+```
+
+### Frontend (.env.local)
+
+```env
+# Backend API URL (для локальной разработки)
+NEXT_PUBLIC_API_URL=http://localhost:8000
+
+# S3 CDN URL
+NEXT_PUBLIC_S3_CDN_URL=https://your-bucket.s3.firstvds.ru
+
+# DaData API Key (для автокомплита городов)
+NEXT_PUBLIC_DADATA_API_KEY=your-dadata-key
 ```
 
 ## 📝 API Endpoints
 
 Подробная документация API доступна в [README_API.md](./README_API.md)
 
-Основные endpoints:
-
-- `GET /api/health` - проверка здоровья сервиса
-- `POST /api/auth/login` - вход в систему
+### Авторизация
 - `POST /api/auth/register` - регистрация
-- `GET /api/auth/me` - получить текущего пользователя
-- `GET /api/posts` - получить посты
+- `POST /api/auth/login` - вход
+- `POST /api/auth/logout` - выход
+- `GET /api/auth/me` - текущий пользователь
+
+### Посты
+- `GET /api/posts` - лента постов
 - `POST /api/posts` - создать пост
-- `GET /api/users/:id` - получить профиль пользователя
+- `GET /api/posts/:id` - получить пост
+- `PUT /api/posts/:id` - обновить пост
+- `DELETE /api/posts/:id` - удалить пост
+- `POST /api/posts/:id/like` - лайкнуть пост
+
+### Пользователи
+- `GET /api/users/:id` - профиль пользователя
+- `PUT /api/profile` - обновить профиль
+- `POST /api/profile/avatar` - загрузить аватар
+
+### Питомцы
+- `GET /api/pets` - список питомцев
+- `POST /api/pets` - создать питомца
+- `GET /api/pets/:id` - получить питомца
+- `PUT /api/pets/:id` - обновить питомца
+- `DELETE /api/pets/:id` - удалить питомца
+
+### Мессенджер
+- `GET /api/chats` - список чатов
+- `GET /api/chats/:id` - сообщения чата
+- `POST /api/messages/send` - отправить сообщение
+- `GET /api/messages/unread` - количество непрочитанных
+- `WS /ws` - WebSocket подключение
+
+### Организации
+- `GET /api/organizations` - список организаций
+- `POST /api/organizations` - создать организацию
+- `GET /api/organizations/:id` - получить организацию
+- `PUT /api/organizations/:id` - обновить организацию
+
+### Друзья
+- `GET /api/friends` - список друзей
+- `GET /api/friends/requests` - заявки в друзья
+- `POST /api/friends/send` - отправить заявку
+- `POST /api/friends/accept` - принять заявку
+- `POST /api/friends/reject` - отклонить заявку
+- `DELETE /api/friends/remove` - удалить из друзей
 
 ## 🐛 Отладка
 
 ### Проверка логов
 
 ```bash
-# Auth Service
-tail -f /tmp/auth-service.log
-
-# PetBase Service
-tail -f /tmp/petbase-service.log
-
-# Main Backend
+# Backend
 tail -f /tmp/main-backend.log
 
-# Main Frontend
+# Frontend
 tail -f /tmp/main-frontend.log
 ```
 
@@ -187,8 +267,19 @@ tail -f /tmp/main-frontend.log
 # Проверить какие порты заняты
 lsof -i :3000
 lsof -i :8000
-lsof -i :8100
-lsof -i :7100
+```
+
+### Проверка подключений
+
+```bash
+# Проверить Backend
+curl http://localhost:8000/api/health
+
+# Проверить Gateway
+curl https://my-projects-gateway-zp.crv1ic.easypanel.host/health
+
+# Проверить PostgreSQL
+psql -h 88.218.121.213 -p 5432 -U your_user -d your_db
 ```
 
 ### Очистка кэша
@@ -205,22 +296,29 @@ cd frontend && npm install
 ## 📚 Дополнительная документация
 
 - [API Documentation](./README_API.md) - документация API
+- [Architecture](./ARCHITECTURE.md) - архитектура проекта
 - [Deployment Guide](./DEPLOYMENT.md) - руководство по деплою
-- [Startup Guide](./STARTUP.md) - руководство по запуску
 - [S3 Storage](./S3_STORAGE.md) - настройка S3 хранилища
-- [Workspace Rules](./main-workspace-rules.md) - правила работы с workspace
-- [Steering Rules](./.kiro/steering/workspace-rules.md) - правила для AI Assistant
+- [Gateway Documentation](./gateway.md) - документация API Gateway
+
+## 🚀 Деплой
+
+Проект использует:
+- **Frontend**: Vercel
+- **Backend**: Easypanel (Docker)
+- **Database**: PostgreSQL на VPS
+- **Storage**: FirstVDS S3
+- **Gateway**: Easypanel (прокси для всех сервисов)
+
+Подробнее в [DEPLOYMENT.md](./DEPLOYMENT.md)
 
 ## 🤝 Вклад в проект
 
-При работе с Main workspace помните:
-
-- ✅ Изменяйте только файлы в папке `main/`
-- 📖 Читайте, но не изменяйте `auth/`, `petbase/`, `database/`, `pkg/`
-- ⚠️ Будьте осторожны с изменениями в `shared/` - они влияют на все сервисы
-- 🔌 Используйте API других сервисов, не лезьте в их код напрямую
-
-Подробнее в [main-workspace-rules.md](./main-workspace-rules.md)
+1. Fork репозиторий
+2. Создайте ветку для фичи (`git checkout -b feature/amazing-feature`)
+3. Commit изменения (`git commit -m 'Add amazing feature'`)
+4. Push в ветку (`git push origin feature/amazing-feature`)
+5. Откройте Pull Request
 
 ## 📄 Лицензия
 
