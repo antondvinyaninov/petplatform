@@ -1,10 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/websocket"
 )
 
@@ -22,7 +25,29 @@ var upgrader = websocket.Upgrader{
 
 func WebSocketProxyHandler(service *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Формируем URL для backend WebSocket
+		// 1. Проверяем JWT токен
+		tokenString := extractToken(r)
+		if tokenString == "" {
+			log.Printf("❌ WebSocket: No token provided")
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// Валидируем токен
+		claims := &Claims{}
+		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+			return []byte(os.Getenv("JWT_SECRET")), nil
+		})
+
+		if err != nil || !token.Valid {
+			log.Printf("❌ WebSocket: Invalid token: %v", err)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		log.Printf("✅ WebSocket auth: user_id=%d, email=%s", claims.UserID, claims.Email)
+
+		// 2. Формируем URL для backend WebSocket
 		backendURL, err := url.Parse(service.URL)
 		if err != nil {
 			log.Printf("❌ Failed to parse backend URL: %v", err)
@@ -39,7 +64,7 @@ func WebSocketProxyHandler(service *Service) http.HandlerFunc {
 		backendURL.Path = r.URL.Path
 		backendURL.RawQuery = r.URL.RawQuery
 
-		// Upgrade клиентского соединения
+		// 3. Upgrade клиентского соединения
 		clientConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Printf("❌ Failed to upgrade client connection: %v", err)
@@ -47,18 +72,11 @@ func WebSocketProxyHandler(service *Service) http.HandlerFunc {
 		}
 		defer clientConn.Close()
 
-		// Подключаемся к backend WebSocket
+		// 4. Подключаемся к backend WebSocket с заголовками авторизации
 		headers := http.Header{}
-		// Копируем заголовки авторизации
-		if userID := r.Header.Get("X-User-ID"); userID != "" {
-			headers.Set("X-User-ID", userID)
-		}
-		if userEmail := r.Header.Get("X-User-Email"); userEmail != "" {
-			headers.Set("X-User-Email", userEmail)
-		}
-		if userRole := r.Header.Get("X-User-Role"); userRole != "" {
-			headers.Set("X-User-Role", userRole)
-		}
+		headers.Set("X-User-ID", fmt.Sprintf("%d", claims.UserID))
+		headers.Set("X-User-Email", claims.Email)
+		headers.Set("X-User-Role", claims.Role)
 
 		backendConn, _, err := websocket.DefaultDialer.Dial(backendURL.String(), headers)
 		if err != nil {
@@ -68,9 +86,9 @@ func WebSocketProxyHandler(service *Service) http.HandlerFunc {
 		}
 		defer backendConn.Close()
 
-		log.Printf("✅ WebSocket proxy established: %s", r.URL.Path)
+		log.Printf("✅ WebSocket proxy established: user_id=%d, path=%s", claims.UserID, r.URL.Path)
 
-		// Проксируем сообщения в обе стороны
+		// 5. Проксируем сообщения в обе стороны
 		errChan := make(chan error, 2)
 
 		// Client -> Backend
@@ -106,9 +124,9 @@ func WebSocketProxyHandler(service *Service) http.HandlerFunc {
 		// Ждем ошибки или закрытия соединения
 		err = <-errChan
 		if err != nil && !websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
-			log.Printf("⚠️  WebSocket error: %v", err)
+			log.Printf("⚠️  WebSocket error: user_id=%d, error=%v", claims.UserID, err)
 		}
 
-		log.Printf("🔌 WebSocket closed: %s", r.URL.Path)
+		log.Printf("🔌 WebSocket closed: user_id=%d, path=%s", claims.UserID, r.URL.Path)
 	}
 }
