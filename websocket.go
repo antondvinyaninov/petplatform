@@ -25,15 +25,27 @@ var upgrader = websocket.Upgrader{
 
 func WebSocketProxyHandler(service *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// 1. Проверяем JWT токен
-		tokenString := extractToken(r)
+		// 1. Читаем токен из cookie (браузер отправляет автоматически)
+		var tokenString string
+
+		// Пробуем прочитать из cookie
+		cookie, err := r.Cookie("auth_token")
+		if err == nil {
+			tokenString = cookie.Value
+		}
+
+		// Если нет в cookie - пробуем из query параметра (fallback)
 		if tokenString == "" {
-			log.Printf("❌ WebSocket: No token provided")
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			tokenString = r.URL.Query().Get("token")
+		}
+
+		if tokenString == "" {
+			log.Printf("❌ WebSocket: No token provided (no cookie or query param)")
+			http.Error(w, "Unauthorized: no token", http.StatusUnauthorized)
 			return
 		}
 
-		// Валидируем токен
+		// 2. Валидируем токен
 		claims := &Claims{}
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 			return []byte(os.Getenv("JWT_SECRET")), nil
@@ -41,13 +53,13 @@ func WebSocketProxyHandler(service *Service) http.HandlerFunc {
 
 		if err != nil || !token.Valid {
 			log.Printf("❌ WebSocket: Invalid token: %v", err)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			http.Error(w, "Unauthorized: invalid token", http.StatusUnauthorized)
 			return
 		}
 
 		log.Printf("✅ WebSocket auth: user_id=%d, email=%s", claims.UserID, claims.Email)
 
-		// 2. Формируем URL для backend WebSocket
+		// 3. Формируем URL для backend WebSocket
 		backendURL, err := url.Parse(service.URL)
 		if err != nil {
 			log.Printf("❌ Failed to parse backend URL: %v", err)
@@ -64,7 +76,7 @@ func WebSocketProxyHandler(service *Service) http.HandlerFunc {
 		backendURL.Path = r.URL.Path
 		backendURL.RawQuery = r.URL.RawQuery
 
-		// 3. Upgrade клиентского соединения
+		// 4. Upgrade клиентского соединения
 		clientConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Printf("❌ Failed to upgrade client connection: %v", err)
@@ -72,7 +84,7 @@ func WebSocketProxyHandler(service *Service) http.HandlerFunc {
 		}
 		defer clientConn.Close()
 
-		// 4. Подключаемся к backend WebSocket с заголовками авторизации
+		// 5. Подключаемся к backend WebSocket с заголовками авторизации
 		headers := http.Header{}
 		headers.Set("X-User-ID", fmt.Sprintf("%d", claims.UserID))
 		headers.Set("X-User-Email", claims.Email)
@@ -88,7 +100,7 @@ func WebSocketProxyHandler(service *Service) http.HandlerFunc {
 
 		log.Printf("✅ WebSocket proxy established: user_id=%d, path=%s", claims.UserID, r.URL.Path)
 
-		// 5. Проксируем сообщения в обе стороны
+		// 6. Проксируем сообщения в обе стороны
 		errChan := make(chan error, 2)
 
 		// Client -> Backend
