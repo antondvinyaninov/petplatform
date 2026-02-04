@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -146,9 +147,12 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("❌ Failed to decode login request: %v", err)
 		respondError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+
+	log.Printf("🔍 Login attempt for: %s", req.Email)
 
 	// Находим пользователя с ролью и всеми полями
 	var user User
@@ -165,6 +169,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		WHERE u.email = $1
 		LIMIT 1`
 
+	log.Printf("🔍 Executing SQL query for email: %s", req.Email)
+
 	err := db.QueryRow(query, req.Email).Scan(
 		&user.ID, &user.Email, &user.PasswordHash, &user.Name,
 		&lastName, &bio, &phone, &location,
@@ -174,13 +180,19 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err == sql.ErrNoRows {
+		log.Printf("❌ User not found: %s", req.Email)
 		respondError(w, "Invalid email or password", http.StatusUnauthorized)
 		return
 	}
 	if err != nil {
+		log.Printf("❌ Database error during login: %v", err)
+		log.Printf("❌ Query: %s", query)
+		log.Printf("❌ Email: %s", req.Email)
 		respondError(w, "Database error", http.StatusInternalServerError)
 		return
 	}
+
+	log.Printf("✅ User found: id=%d, email=%s, name=%s", user.ID, user.Email, user.Name)
 
 	// Конвертируем NULL значения
 	if lastName.Valid {
@@ -197,23 +209,32 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if avatar.Valid {
 		user.Avatar = &avatar.String
+		log.Printf("🖼️  User has avatar: %s", *user.Avatar)
 	}
 	if coverPhoto.Valid {
 		user.CoverPhoto = &coverPhoto.String
 	}
 
 	// Проверяем пароль
+	log.Printf("🔍 Verifying password for user: %s", req.Email)
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+		log.Printf("❌ Invalid password for user: %s", req.Email)
 		respondError(w, "Invalid email or password", http.StatusUnauthorized)
 		return
 	}
 
+	log.Printf("✅ Password verified for user: %s", req.Email)
+
 	// Создаем JWT токен
+	log.Printf("🔍 Creating JWT token for user: %s", req.Email)
 	token, err := createToken(&user)
 	if err != nil {
+		log.Printf("❌ Failed to create token: %v", err)
 		respondError(w, "Failed to create token", http.StatusInternalServerError)
 		return
 	}
+
+	log.Printf("✅ JWT token created for user: %s", req.Email)
 
 	// Устанавливаем cookie
 	http.SetCookie(w, &http.Cookie{
@@ -225,6 +246,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   7 * 24 * 60 * 60, // 7 дней
 	})
+
+	log.Printf("✅ Login successful for user: %s (id=%d, role=%s)", req.Email, user.ID, user.Role)
 
 	respondJSON(w, map[string]interface{}{
 		"success": true,
