@@ -33,6 +33,10 @@ func SetupRouter() *mux.Router {
 	apiRouter.Use(RateLimitMiddleware)
 	apiRouter.Use(AuthMiddleware) // Проверка JWT
 
+	// Chunked upload endpoints (должны быть ПЕРВЫМИ для правильной маршрутизации)
+	apiRouter.PathPrefix("/media/chunked").HandlerFunc(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/media").HandlerFunc(ProxyHandler(mainService))
+
 	// Специфичные маршруты сервисов (должны быть ПЕРЕД общими)
 	if clinicService != nil {
 		apiRouter.PathPrefix("/clinic").HandlerFunc(ProxyHandler(clinicService))
