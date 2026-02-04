@@ -6,13 +6,13 @@ WORKDIR /app/frontend
 # Copy frontend package files
 COPY frontend/package*.json ./
 
-# Install dependencies
+# Install dependencies (no @pet/shared dependency)
 RUN npm ci
 
 # Copy frontend source
 COPY frontend/ ./
 
-# Build frontend
+# Build frontend for production
 RUN npm run build
 
 # Stage 2: Build Backend
@@ -35,36 +35,35 @@ COPY backend/ ./
 # Build backend
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 
-# Stage 3: Final image with both frontend and backend
-FROM node:20-alpine
+# Stage 3: Final image
+FROM alpine:latest
 
-# Install ca-certificates for HTTPS
-RUN apk --no-cache add ca-certificates
+# Install ca-certificates and nodejs for Next.js
+RUN apk --no-cache add ca-certificates nodejs npm
 
 WORKDIR /app
 
 # Copy backend binary
-COPY --from=backend-builder /app/main ./backend/
+COPY --from=backend-builder /app/main ./
 
 # Copy frontend build
 COPY --from=frontend-builder /app/frontend/.next ./frontend/.next
 COPY --from=frontend-builder /app/frontend/public ./frontend/public
 COPY --from=frontend-builder /app/frontend/package*.json ./frontend/
 COPY --from=frontend-builder /app/frontend/next.config.ts ./frontend/
-
-# Install only production dependencies for frontend
-WORKDIR /app/frontend
-RUN npm ci --only=production
+COPY --from=frontend-builder /app/frontend/node_modules ./frontend/node_modules
 
 # Create startup script
-WORKDIR /app
-RUN echo '#!/bin/sh' > start.sh && \
-    echo 'cd /app/backend && ./main &' >> start.sh && \
-    echo 'cd /app/frontend && npm start' >> start.sh && \
-    chmod +x start.sh
+# Backend на порту 8000, Frontend на порту 80
+RUN echo '#!/bin/sh' > /app/start.sh && \
+    echo 'export PORT=8000' >> /app/start.sh && \
+    echo 'cd /app && ./main &' >> /app/start.sh && \
+    echo 'sleep 2' >> /app/start.sh && \
+    echo 'cd /app/frontend && PORT=80 npm start' >> /app/start.sh && \
+    chmod +x /app/start.sh
 
 # Expose ports
-EXPOSE 80 3000
+EXPOSE 80 8000
 
 # Start both services
 CMD ["/bin/sh", "/app/start.sh"]
