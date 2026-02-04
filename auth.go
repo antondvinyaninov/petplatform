@@ -152,7 +152,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Находим пользователя с ролью и всеми полями
 	var user User
-	var bio, phone, location, avatar, coverPhoto sql.NullString
+	var lastName, bio, phone, location, avatar, coverPhoto sql.NullString
 
 	query := `
 		SELECT u.id, u.email, u.password, u.name, u.last_name, 
@@ -167,7 +167,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := db.QueryRow(query, req.Email).Scan(
 		&user.ID, &user.Email, &user.PasswordHash, &user.Name,
-		&user.LastName, &bio, &phone, &location,
+		&lastName, &bio, &phone, &location,
 		&avatar, &coverPhoto, &user.ProfileVisibility,
 		&user.ShowPhone, &user.ShowEmail, &user.AllowMessages,
 		&user.ShowOnline, &user.Verified, &user.CreatedAt, &user.Role,
@@ -183,6 +183,9 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Конвертируем NULL значения
+	if lastName.Valid {
+		user.LastName = lastName.String
+	}
 	if bio.Valid {
 		user.Bio = &bio.String
 	}

@@ -129,7 +129,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		// Получаем пользователя из БД с ролью
 		var user User
-		var bio, phone, location, avatar, coverPhoto sql.NullString
+		var lastName, bio, phone, location, avatar, coverPhoto sql.NullString
 
 		query := `
 			SELECT u.id, u.email, u.name, u.last_name,
@@ -143,7 +143,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			LIMIT 1`
 
 		err = db.QueryRow(query, claims.UserID).Scan(
-			&user.ID, &user.Email, &user.Name, &user.LastName,
+			&user.ID, &user.Email, &user.Name, &lastName,
 			&bio, &phone, &location, &avatar,
 			&coverPhoto, &user.ProfileVisibility, &user.ShowPhone,
 			&user.ShowEmail, &user.AllowMessages, &user.ShowOnline,
@@ -160,6 +160,9 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		// Конвертируем NULL значения
+		if lastName.Valid {
+			user.LastName = lastName.String
+		}
 		if bio.Valid {
 			user.Bio = &bio.String
 		}
