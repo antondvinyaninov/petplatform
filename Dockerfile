@@ -50,10 +50,12 @@ WORKDIR /app
 # Copy backend binary
 COPY --from=backend-builder /app/main ./backend/main
 
-# Copy frontend build (static export)
-COPY --from=frontend-builder /app/frontend/.next/standalone ./frontend/
-COPY --from=frontend-builder /app/frontend/.next/static ./frontend/.next/static
+# Copy frontend build
+COPY --from=frontend-builder /app/frontend/.next ./frontend/.next
 COPY --from=frontend-builder /app/frontend/public ./frontend/public
+COPY --from=frontend-builder /app/frontend/node_modules ./frontend/node_modules
+COPY --from=frontend-builder /app/frontend/package.json ./frontend/
+COPY --from=frontend-builder /app/frontend/next.config.ts ./frontend/
 
 # Create nginx config
 RUN mkdir -p /run/nginx && \
@@ -101,13 +103,6 @@ RUN mkdir -p /run/nginx && \
 
 # Install nodejs and npm for Next.js
 RUN apk --no-cache add nodejs npm
-
-# Copy node_modules for Next.js
-COPY --from=frontend-builder /app/frontend/node_modules ./frontend/node_modules
-COPY --from=frontend-builder /app/frontend/package.json ./frontend/
-COPY --from=frontend-builder /app/frontend/.next ./frontend/.next
-COPY --from=frontend-builder /app/frontend/public ./frontend/public
-COPY --from=frontend-builder /app/frontend/next.config.ts ./frontend/
 
 # Create startup script
 RUN echo '#!/bin/sh' > /app/start.sh && \
