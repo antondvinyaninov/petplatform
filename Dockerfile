@@ -7,6 +7,10 @@ WORKDIR /app/frontend
 ARG GIT_SHA
 RUN echo "Building from commit: ${GIT_SHA}"
 
+# Accept NEXT_PUBLIC_API_URL as build argument
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
 # Copy frontend package files (only package.json, not lock file)
 COPY frontend/package.json ./
 
