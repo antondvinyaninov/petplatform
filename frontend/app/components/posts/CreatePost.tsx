@@ -18,8 +18,7 @@ import {
 import { GiPawPrint } from 'react-icons/gi';
 import { MdPets } from 'react-icons/md';
 import PollCreator, { PollData } from '../polls/PollCreator';
-import { useMediaUpload, UploadedMedia } from '../../hooks/useMediaUpload';
-import { useChunkedUpload, ChunkedUploadProgress } from '../../hooks/useChunkedUpload';
+import { useChunkedUpload, ChunkedUploadProgress, UploadedMedia } from '../../hooks/useChunkedUpload';
 import LocationMap from '../shared/LocationMap';
 import MiniMap from '../shared/MiniMap';
 
@@ -44,7 +43,6 @@ type ReplySettingType = 'anyone' | 'followers' | 'following' | 'mentions';
 
 export default function CreatePost({ onPostCreated, editMode = false, editPost, onPostUpdated }: CreatePostProps) {
   const { user } = useAuth();
-  const { uploadMultiple, uploading, optimizing } = useMediaUpload();
   const { uploadFile: uploadChunked } = useChunkedUpload();
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -251,8 +249,20 @@ export default function CreatePost({ onPostCreated, editMode = false, editPost, 
       return;
     }
 
-    // Upload files
-    const uploaded = await uploadMultiple(validFiles, 'photo');
+    // Upload files using chunked upload (для S3)
+    const uploaded: UploadedMedia[] = [];
+    for (const file of validFiles) {
+      try {
+        const result = await uploadChunked(file, 'photo');
+        if (result) {
+          uploaded.push(result);
+        }
+      } catch (error) {
+        console.error(`❌ Ошибка загрузки ${file.name}:`, error);
+        alert(`Ошибка загрузки ${file.name}`);
+      }
+    }
+    
     console.log('📤 Uploaded files:', uploaded.map(u => u.original_name));
     
     if (uploaded.length > 0) {

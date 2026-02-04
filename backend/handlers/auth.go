@@ -1,15 +1,19 @@
 package handlers
 
 import (
+	"backend/db"
 	"backend/models"
 	"bytes"
-	"backend/db"
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // logSystemEvent - логирует событие в системе
@@ -174,11 +178,115 @@ func MeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 🔥 НОВОЕ: Используем Auth Service для получения данных пользователя
+	// 🔥 DEV MODE: Работаем с локальной БД напрямую если AUTH_SERVICE_URL не установлен
 	authServiceURL := os.Getenv("AUTH_SERVICE_URL")
+
 	if authServiceURL == "" {
-		authServiceURL = "http://localhost:7100"
+		// Локальный режим - валидируем JWT и получаем данные из БД
+		log.Printf("🔧 Dev mode: Using local database")
+
+		// Валидируем JWT токен
+		jwtSecret := os.Getenv("JWT_SECRET")
+		if jwtSecret == "" {
+			sendError(w, "Server configuration error", http.StatusInternalServerError)
+			return
+		}
+
+		parsedToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+			}
+			return []byte(jwtSecret), nil
+		})
+
+		if err != nil || !parsedToken.Valid {
+			sendError(w, "Invalid token", http.StatusUnauthorized)
+			return
+		}
+
+		claims, ok := parsedToken.Claims.(jwt.MapClaims)
+		if !ok {
+			sendError(w, "Invalid token claims", http.StatusUnauthorized)
+			return
+		}
+
+		userID := int(claims["user_id"].(float64))
+
+		// Получаем данные пользователя из локальной БД
+		var user models.User
+		var lastName, bio, phone, location, avatar, coverPhoto sql.NullString
+
+		query := ConvertPlaceholders(`SELECT id, name, last_name, email, bio, phone, location, avatar, cover_photo,
+			profile_visibility, show_phone, show_email, allow_messages, show_online, verified, created_at 
+			FROM users WHERE id = ?`)
+
+		err = db.DB.QueryRow(query, userID).Scan(
+			&user.ID, &user.Name, &lastName, &user.Email, &bio, &phone,
+			&location, &avatar, &coverPhoto,
+			&user.ProfileVisibility, &user.ShowPhone, &user.ShowEmail, &user.AllowMessages, &user.ShowOnline,
+			&user.Verified, &user.CreatedAt,
+		)
+
+		if err != nil {
+			log.Printf("❌ Failed to get user from DB: %v", err)
+			sendError(w, "User not found", http.StatusNotFound)
+			return
+		}
+
+		// Конвертируем NULL значения
+		if lastName.Valid {
+			user.LastName = lastName.String
+		}
+		if bio.Valid {
+			user.Bio = bio.String
+		}
+		if phone.Valid {
+			user.Phone = phone.String
+		}
+		if location.Valid {
+			user.Location = location.String
+		}
+		if avatar.Valid {
+			user.Avatar = avatar.String
+		}
+		if coverPhoto.Valid {
+			user.CoverPhoto = coverPhoto.String
+		}
+
+		// Формируем ответ
+		response := map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"user": map[string]interface{}{
+					"id":                 user.ID,
+					"name":               user.Name,
+					"last_name":          user.LastName,
+					"email":              user.Email,
+					"bio":                user.Bio,
+					"phone":              user.Phone,
+					"location":           user.Location,
+					"avatar":             user.Avatar,
+					"cover_photo":        user.CoverPhoto,
+					"profile_visibility": user.ProfileVisibility,
+					"show_phone":         user.ShowPhone,
+					"show_email":         user.ShowEmail,
+					"allow_messages":     user.AllowMessages,
+					"show_online":        user.ShowOnline,
+					"verified":           user.Verified,
+					"created_at":         user.CreatedAt,
+				},
+				"token": token,
+			},
+			"token": token,
+		}
+
+		json.NewEncoder(w).Encode(response)
+		log.Printf("✅ User profile loaded from local DB: %s (id=%d)", user.Email, user.ID)
+		return
 	}
+
+	// PRODUCTION MODE: Используем Auth Service (Gateway)
+	log.Printf("🌐 Production mode: Using Auth Service at %s", authServiceURL)
 
 	// Создаем запрос к Auth Service
 	req, err := http.NewRequest("GET", authServiceURL+"/api/auth/me", nil)

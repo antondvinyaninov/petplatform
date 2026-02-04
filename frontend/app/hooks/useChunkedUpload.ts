@@ -35,6 +35,12 @@ export function useChunkedUpload() {
     onProgress?: (progress: ChunkedUploadProgress) => void
   ): Promise<UploadedMedia | null> => {
     try {
+      // Получаем токен из localStorage
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        throw new Error('No auth token found');
+      }
+
       // Step 1: Initiate upload
       console.log(`🚀 [CHUNKED] Инициализация загрузки: ${file.name}, размер: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
       
@@ -47,6 +53,9 @@ export function useChunkedUpload() {
       const initiateResponse = await fetch(`${API_BASE}/api/media/chunked/initiate`, {
         method: 'POST',
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
         body: initiateFormData,
       });
 
@@ -82,6 +91,9 @@ export function useChunkedUpload() {
         const chunkResponse = await fetch(`${API_BASE}/api/media/chunked/upload`, {
           method: 'POST',
           credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
           body: chunkFormData,
         });
 
@@ -128,6 +140,9 @@ export function useChunkedUpload() {
       const completeResponse = await fetch(`${API_BASE}/api/media/chunked/complete`, {
         method: 'POST',
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
         body: completeFormData,
         signal: AbortSignal.timeout(300000), // 5 minutes timeout
       });

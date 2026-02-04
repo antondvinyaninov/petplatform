@@ -46,7 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (mounted && response.success && response.data) {
           const userData = response.data as any;
-          const user = userData.user || userData;
+          // Проверяем есть ли user.id в userData.user, если нет - берем userData напрямую
+          const user = (userData.user && userData.user.id) ? userData.user : userData;
           
           setUser(user);
           setToken(storedToken);
@@ -146,7 +147,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (authResponse.success && authResponse.data) {
         const userData = authResponse.data as any;
-        const user = userData.user || userData;
+        // Проверяем есть ли user.id в userData.user, если нет - берем userData напрямую
+        const user = (userData.user && userData.user.id) ? userData.user : userData;
         console.log('✅ Setting user in context:', user);
         setUser(user);
       }

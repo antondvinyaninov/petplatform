@@ -57,6 +57,9 @@ export default function UserMenu() {
     );
   }
 
+  // Generate cache buster based on user.avatar to force reload when avatar changes
+  const avatarUrl = user?.avatar ? `${getMediaUrl(user.avatar)}?v=${encodeURIComponent(user.avatar)}` : undefined;
+
   return (
     <div ref={menuRef} className="relative">
       {/* User Avatar Button */}
@@ -65,9 +68,9 @@ export default function UserMenu() {
         className="flex items-center gap-2 p-1 hover:bg-gray-100 rounded-lg transition-colors"
       >
         <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
-          {user?.avatar ? (
+          {avatarUrl ? (
             <img 
-              src={`${getMediaUrl(user.avatar)}?t=${Date.now()}`} 
+              src={avatarUrl} 
               alt={user.name} 
               className="w-full h-full object-cover" 
             />
@@ -87,9 +90,9 @@ export default function UserMenu() {
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
-                {user?.avatar ? (
+                {avatarUrl ? (
                   <img 
-                    src={`${getMediaUrl(user.avatar)}?t=${Date.now()}`} 
+                    src={avatarUrl} 
                     alt={user.name} 
                     className="w-full h-full object-cover" 
                   />
@@ -112,7 +115,7 @@ export default function UserMenu() {
             {/* Управление аккаунтом */}
             <button
               onClick={() => {
-                if (user) {
+                if (user?.id) {
                   router.push(`/id${user.id}`);
                   setIsOpen(false);
                 }
