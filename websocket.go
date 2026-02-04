@@ -45,12 +45,7 @@ func WebSocketProxyHandler(service *Service) http.HandlerFunc {
 
 		log.Printf("✅ WebSocket auth: user_id=%d, email=%s", claims.UserID, claims.Email)
 
-		// 3. Добавляем заголовки для backend
-		r.Header.Set("X-User-ID", fmt.Sprintf("%d", claims.UserID))
-		r.Header.Set("X-User-Email", claims.Email)
-		r.Header.Set("X-User-Role", claims.Role)
-
-		// 4. Используем ReverseProxy для WebSocket
+		// 3. Создаем ReverseProxy с правильной настройкой
 		target, err := url.Parse(service.URL)
 		if err != nil {
 			log.Printf("❌ Failed to parse backend URL: %v", err)
@@ -64,9 +59,18 @@ func WebSocketProxyHandler(service *Service) http.HandlerFunc {
 		originalDirector := proxy.Director
 		proxy.Director = func(req *http.Request) {
 			originalDirector(req)
+
+			// Устанавливаем путь и хост
 			req.URL.Path = "/ws"
 			req.Host = target.Host
-			// Заголовки уже установлены выше
+
+			// КРИТИЧНО: Добавляем заголовки X-User-* для backend
+			req.Header.Set("X-User-ID", fmt.Sprintf("%d", claims.UserID))
+			req.Header.Set("X-User-Email", claims.Email)
+			req.Header.Set("X-User-Role", claims.Role)
+
+			log.Printf("🔧 WebSocket headers set: X-User-ID=%d, X-User-Email=%s, X-User-Role=%s",
+				claims.UserID, claims.Email, claims.Role)
 		}
 
 		// ModifyResponse для WebSocket (пропускаем без изменений)
