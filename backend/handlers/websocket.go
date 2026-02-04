@@ -12,9 +12,23 @@ import (
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		// Разрешаем подключения с localhost для разработки
 		origin := r.Header.Get("Origin")
-		return origin == "http://localhost:3000" || origin == "http://localhost:3001"
+
+		// Если нет Origin - это запрос от Gateway (разрешаем)
+		// Gateway уже проверил JWT и добавил X-User-ID
+		if origin == "" {
+			return true
+		}
+
+		// Разрешенные origins для прямых подключений (dev режим)
+		allowedOrigins := map[string]bool{
+			"http://localhost:3000":                                  true,
+			"http://localhost:3001":                                  true,
+			"https://my-projects-zooplatforma.crv1ic.easypanel.host": true,
+			"https://my-projects-gateway-zp.crv1ic.easypanel.host":   true,
+		}
+
+		return allowedOrigins[origin]
 	},
 }
 

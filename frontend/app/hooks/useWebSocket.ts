@@ -81,7 +81,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       ? new URL(process.env.NEXT_PUBLIC_API_URL).host 
       : 'localhost:8000';
     
-    // ✅ Передаем токен через query параметр (Gateway поддерживает как fallback)
+    // Передаем токен через query параметр
     const wsUrl = `${wsProtocol}//${wsHost}/ws?token=${token}`;
 
     console.log('🔌 Connecting to WebSocket:', wsUrl.replace(token, 'TOKEN_HIDDEN'));
