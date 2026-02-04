@@ -574,5 +574,5 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	// Возвращаем ответ клиенту
 	w.Write(body)
 
-	log.Printf("✅ User logged in via Auth Service: %s", authResp.Data.User.Email)
+	log.Printf("✅ User logged in via Auth Service: %s", authResp.User.Email)
 }
