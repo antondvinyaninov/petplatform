@@ -129,6 +129,8 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		// Получаем пользователя из БД с ролью
 		var user User
+		var bio, phone, location, avatar, coverPhoto sql.NullString
+
 		query := `
 			SELECT u.id, u.email, u.name, u.last_name,
 			       u.bio, u.phone, u.location, u.avatar, u.cover_photo,
@@ -142,8 +144,8 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		err = db.QueryRow(query, claims.UserID).Scan(
 			&user.ID, &user.Email, &user.Name, &user.LastName,
-			&user.Bio, &user.Phone, &user.Location, &user.Avatar,
-			&user.CoverPhoto, &user.ProfileVisibility, &user.ShowPhone,
+			&bio, &phone, &location, &avatar,
+			&coverPhoto, &user.ProfileVisibility, &user.ShowPhone,
 			&user.ShowEmail, &user.AllowMessages, &user.ShowOnline,
 			&user.Verified, &user.CreatedAt, &user.Role,
 		)
@@ -155,6 +157,23 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		if err != nil {
 			respondError(w, "Database error", http.StatusInternalServerError)
 			return
+		}
+
+		// Конвертируем NULL значения
+		if bio.Valid {
+			user.Bio = &bio.String
+		}
+		if phone.Valid {
+			user.Phone = &phone.String
+		}
+		if location.Valid {
+			user.Location = &location.String
+		}
+		if avatar.Valid {
+			user.Avatar = &avatar.String
+		}
+		if coverPhoto.Valid {
+			user.CoverPhoto = &coverPhoto.String
 		}
 
 		log.Printf("✅ Authenticated: user_id=%d, email=%s, role=%s", user.ID, user.Email, user.Role)
