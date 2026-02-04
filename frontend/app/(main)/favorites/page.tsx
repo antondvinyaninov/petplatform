@@ -32,7 +32,7 @@ interface FavoriteWithPet extends Favorite {
 
 export default function FavoritesPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [favorites, setFavorites] = useState<FavoriteWithPet[]>([]);
   const [loading, setLoading] = useState(true);
   const [removingId, setRemovingId] = useState<number | null>(null);
