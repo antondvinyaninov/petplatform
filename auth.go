@@ -25,9 +25,9 @@ type User struct {
 	Avatar            *string   `json:"avatar"`
 	CoverPhoto        *string   `json:"cover_photo"`
 	ProfileVisibility string    `json:"profile_visibility"`
-	ShowPhone         bool      `json:"show_phone"`
-	ShowEmail         bool      `json:"show_email"`
-	AllowMessages     bool      `json:"allow_messages"`
+	ShowPhone         string    `json:"show_phone"`     // было bool, теперь string ("nobody", "friends", "public")
+	ShowEmail         string    `json:"show_email"`     // было bool, теперь string
+	AllowMessages     string    `json:"allow_messages"` // было bool, теперь string
 	ShowOnline        bool      `json:"show_online"`
 	Verified          bool      `json:"verified"`
 	Role              string    `json:"role"`
