@@ -38,6 +38,9 @@ ENVIRONMENT=production
 AUTH_SERVICE_URL=https://my-projects-gateway-zp.crv1ic.easypanel.host
 PETBASE_SERVICE_URL=http://localhost:8100
 
+# Frontend (для WebSocket и API)
+NEXT_PUBLIC_API_URL=https://my-projects-gateway-zp.crv1ic.easypanel.host
+
 # PostgreSQL Database
 DATABASE_URL=postgres://user:password@88.218.121.213:5432/zp-db?sslmode=disable
 
@@ -57,7 +60,6 @@ S3_CDN_URL=https://zooplatforma.s3.firstvds.ru
 - **Interval**: 30s
 - **Timeout**: 10s
 - **Retries**: 3
-
 **Resources:**
 - **CPU**: 0.5 - 1.0 vCPU
 - **Memory**: 512MB - 1GB
