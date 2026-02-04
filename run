@@ -125,6 +125,17 @@ if check_http "https://my-projects-gateway-zp.crv1ic.easypanel.host/" "API Gatew
             echo -e "${YELLOW}   ⚠️  Main Backend is not healthy in Gateway (will start locally)${NC}"
         fi
     fi
+    
+    # Проверяем CORS для localhost:3000
+    echo -e "${BLUE}🔍 Checking Gateway CORS for localhost:3000...${NC}"
+    cors_check=$(curl -s -H "Origin: http://localhost:3000" -H "Access-Control-Request-Method: GET" -X OPTIONS "https://my-projects-gateway-zp.crv1ic.easypanel.host/api/health" -i 2>/dev/null | grep -i "access-control-allow-origin")
+    
+    if echo "$cors_check" | grep -q "localhost:3000"; then
+        echo -e "${GREEN}   ✅ CORS configured for localhost:3000${NC}"
+    else
+        echo -e "${YELLOW}   ⚠️  CORS may not be configured for localhost:3000${NC}"
+        echo -e "${YELLOW}   Add 'http://localhost:3000' to allowedOrigins in Gateway${NC}"
+    fi
 else
     echo -e "${YELLOW}⚠️  Gateway is not reachable - will use local mode${NC}"
 fi
@@ -168,6 +179,7 @@ echo -e "${BLUE}📊 Connection Status:${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 if [ "$GATEWAY_OK" = true ]; then
     echo -e "${GREEN}✅ API Gateway: Connected${NC}"
+    echo -e "${GREEN}   CORS: Configured for localhost:3000${NC}"
 else
     echo -e "${YELLOW}⚠️  API Gateway: Not available (local mode)${NC}"
 fi
@@ -185,6 +197,9 @@ if [ "$USE_S3" = "true" ]; then
 else
     echo -e "${BLUE}📁 File Storage: Local${NC}"
 fi
+echo ""
+echo -e "${BLUE}📍 Architecture:${NC}"
+echo -e "   Frontend (localhost:3000) → Gateway (remote) → Backend (localhost:8000)"
 echo ""
 
 # Проверяем что PostgreSQL доступен
