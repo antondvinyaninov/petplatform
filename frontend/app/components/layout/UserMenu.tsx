@@ -71,7 +71,7 @@ export default function UserMenu() {
           {avatarUrl ? (
             <img 
               src={avatarUrl} 
-              alt={user.name} 
+              alt={user?.name || 'User'} 
               className="w-full h-full object-cover" 
             />
           ) : (
@@ -93,7 +93,7 @@ export default function UserMenu() {
                 {avatarUrl ? (
                   <img 
                     src={avatarUrl} 
-                    alt={user.name} 
+                    alt={user?.name || 'User'} 
                     className="w-full h-full object-cover" 
                   />
                 ) : (
