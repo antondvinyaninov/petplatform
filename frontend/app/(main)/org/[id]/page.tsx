@@ -69,7 +69,7 @@ export default function OrganizationPage() {
     try {
       setLoading(true);
       const response = await organizationsApi.getById(Number(params.id));
-      if (response.success) {
+      if (response.success && response.data) {
         setOrg(response.data);
       }
     } catch (error) {
