@@ -73,6 +73,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     const wsHost = process.env.NEXT_PUBLIC_API_URL 
       ? new URL(process.env.NEXT_PUBLIC_API_URL).host 
       : 'localhost:8000';
+    
+    // ✅ Токен передается через cookie автоматически (браузер отправляет cookie)
+    // Gateway читает auth_token из cookie
     const wsUrl = `${wsProtocol}//${wsHost}/ws`;
 
     console.log('🔌 Connecting to WebSocket:', wsUrl);

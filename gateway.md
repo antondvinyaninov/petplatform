@@ -164,6 +164,86 @@ Frontend → Gateway → Backend
 
 Пример: `GET /api/posts` (просмотр постов)
 
+### 1.1 WebSocket соединения (требуют авторизацию)
+
+```
+Frontend → Gateway → Backend WebSocket
+```
+
+**ВАЖНО:** Gateway должен проксировать WebSocket соединения на `/ws`:
+
+```go
+// В main.go Gateway добавить:
+http.HandleFunc("/ws", ProxyWebSocketHandler(mainService))
+
+// Функция ProxyWebSocketHandler должна:
+// 1. Проверить JWT токен (как обычный запрос)
+// 2. Добавить заголовки X-User-ID, X-User-Email, X-User-Role
+// 3. Upgrade соединение до WebSocket
+// 4. Проксировать WebSocket frames между клиентом и backend
+```
+
+Пример реализации:
+```go
+func ProxyWebSocketHandler(service *Service) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        // 1. Проверяем JWT токен
+        token := extractToken(r)
+        claims, err := validateToken(token)
+        if err != nil {
+            http.Error(w, "Unauthorized", http.StatusUnauthorized)
+            return
+        }
+        
+        // 2. Добавляем заголовки для backend
+        r.Header.Set("X-User-ID", fmt.Sprintf("%d", claims.UserID))
+        r.Header.Set("X-User-Email", claims.Email)
+        r.Header.Set("X-User-Role", claims.Role)
+        
+        // 3. Создаем WebSocket соединение к backend
+        backendURL := strings.Replace(service.URL, "http://", "ws://", 1)
+        backendURL = strings.Replace(backendURL, "https://", "wss://", 1)
+        backendURL += "/ws"
+        
+        dialer := websocket.Dialer{}
+        backendConn, _, err := dialer.Dial(backendURL, r.Header)
+        if err != nil {
+            log.Printf("Failed to connect to backend WebSocket: %v", err)
+            http.Error(w, "Backend unavailable", http.StatusBadGateway)
+            return
+        }
+        defer backendConn.Close()
+        
+        // 4. Upgrade клиентское соединение
+        upgrader := websocket.Upgrader{
+            CheckOrigin: func(r *http.Request) bool { return true },
+        }
+        clientConn, err := upgrader.Upgrade(w, r, nil)
+        if err != nil {
+            log.Printf("Failed to upgrade client connection: %v", err)
+            return
+        }
+        defer clientConn.Close()
+        
+        // 5. Проксируем сообщения в обе стороны
+        go copyWebSocket(clientConn, backendConn)
+        copyWebSocket(backendConn, clientConn)
+    }
+}
+
+func copyWebSocket(dst, src *websocket.Conn) {
+    for {
+        messageType, message, err := src.ReadMessage()
+        if err != nil {
+            return
+        }
+        if err := dst.WriteMessage(messageType, message); err != nil {
+            return
+        }
+    }
+}
+```
+
 ### 2. Защищенные запросы (с авторизацией)
 
 ```
