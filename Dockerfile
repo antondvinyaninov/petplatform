@@ -10,8 +10,8 @@ RUN echo "Building from commit: ${GIT_SHA}"
 # Copy frontend package files
 COPY frontend/package*.json ./
 
-# Install dependencies (no @pet/shared dependency)
-RUN npm cache clean --force && npm ci
+# Install dependencies using npm install (ignores corrupted lock file)
+RUN npm install --production=false
 
 # Copy frontend source
 COPY frontend/ ./
