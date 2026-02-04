@@ -80,15 +80,24 @@ func protectedRoute(handler http.HandlerFunc) http.HandlerFunc {
 }
 
 func main() {
+	log.Println("🚀 Starting PetPlatform Backend...")
+
 	// Load .env file
 	if err := godotenv.Load(); err != nil {
-		log.Println("Warning: .env file not found, using default values")
+		log.Println("⚠️  Warning: .env file not found, using environment variables")
 	}
+
+	// Log environment
+	env := os.Getenv("ENVIRONMENT")
+	if env == "" {
+		env = "development"
+	}
+	log.Printf("📍 Environment: %s", env)
 
 	authServiceURL := os.Getenv("AUTH_SERVICE_URL")
 	if authServiceURL == "" {
 		authServiceURL = "http://localhost:7100"
-		log.Printf("⚠️ AUTH_SERVICE_URL not set, using default: %s\n", authServiceURL)
+		log.Printf("⚠️  AUTH_SERVICE_URL not set, using default: %s\n", authServiceURL)
 	} else {
 		log.Printf("🔐 Auth Service URL: %s\n", authServiceURL)
 	}
@@ -97,20 +106,24 @@ func main() {
 	log.Printf("🚀 Running behind API Gateway - auth handled by Gateway")
 
 	// Initialize database
+	log.Println("📊 Connecting to database...")
 	if err := db.InitDB(); err != nil {
-		log.Fatal("Failed to initialize database:", err)
+		log.Printf("❌ Failed to initialize database: %v", err)
+		log.Fatal("Cannot start without database connection")
 	}
 	defer db.CloseDB()
 
 	// Initialize S3 storage
+	log.Println("☁️  Initializing S3 storage...")
 	if err := storage.InitS3(); err != nil {
 		log.Printf("⚠️  S3 initialization failed: %v", err)
 		log.Println("📁 Falling back to local file storage")
 	}
 
 	// Initialize WebSocket hub
+	log.Println("🔌 Initializing WebSocket hub...")
 	handlers.InitWebSocketHub(db.DB)
-	log.Println("🔌 WebSocket hub initialized")
+	log.Println("✅ WebSocket hub initialized")
 
 	// Public API routes (register BEFORE root route)
 	http.HandleFunc("/api/health", enableCORS(handleHealth))
@@ -339,9 +352,18 @@ func main() {
 	// Root route MUST be registered LAST
 	http.HandleFunc("/", enableCORS(handleRoot))
 
-	port := ":8000"
-	fmt.Printf("Server starting on port %s\n", port)
-	log.Fatal(http.ListenAndServe(port, nil))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8000"
+	}
+
+	log.Println("✅ All routes registered")
+	log.Printf("🚀 Server starting on port %s", port)
+	log.Printf("🌐 Health check: http://localhost:%s/api/health", port)
+
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
+		log.Fatalf("❌ Failed to start server: %v", err)
+	}
 }
 
 func handleRoot(w http.ResponseWriter, r *http.Request) {
