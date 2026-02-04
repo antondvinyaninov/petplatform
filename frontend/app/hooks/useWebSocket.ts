@@ -68,17 +68,23 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   }, [user?.id]); // ✅ Зависим только от user.id, а не от всего объекта user
 
   const connect = () => {
+    // Получаем токен из localStorage
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      console.error('❌ No token found, cannot connect to WebSocket');
+      return;
+    }
+
     // Определяем WebSocket URL
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsHost = process.env.NEXT_PUBLIC_API_URL 
       ? new URL(process.env.NEXT_PUBLIC_API_URL).host 
       : 'localhost:8000';
     
-    // ✅ Токен передается через cookie автоматически (браузер отправляет cookie)
-    // Gateway читает auth_token из cookie
-    const wsUrl = `${wsProtocol}//${wsHost}/ws`;
+    // ✅ Передаем токен через query параметр (Gateway поддерживает как fallback)
+    const wsUrl = `${wsProtocol}//${wsHost}/ws?token=${token}`;
 
-    console.log('🔌 Connecting to WebSocket:', wsUrl);
+    console.log('🔌 Connecting to WebSocket:', wsUrl.replace(token, 'TOKEN_HIDDEN'));
 
     try {
       const ws = new WebSocket(wsUrl);
