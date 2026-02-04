@@ -15,14 +15,17 @@ func SetupRouter() *mux.Router {
 	// 1. Health check (публичный)
 	router.HandleFunc("/health", HealthCheckHandler).Methods("GET", "OPTIONS")
 
-	// 2. Auth endpoints (публичные, обрабатывает Gateway)
+	// 2. WebSocket (ВАЖНО: ДО всех PathPrefix, защищенный)
+	router.HandleFunc("/ws", WebSocketProxyHandler(mainService)).Methods("GET")
+
+	// 3. Auth endpoints (публичные, обрабатывает Gateway)
 	authRouter := router.PathPrefix("/api/auth").Subrouter()
 	authRouter.HandleFunc("/register", RegisterHandler).Methods("POST", "OPTIONS")
 	authRouter.HandleFunc("/login", LoginHandler).Methods("POST", "OPTIONS")
 	authRouter.HandleFunc("/logout", LogoutHandler).Methods("POST", "OPTIONS")
 	authRouter.HandleFunc("/me", AuthMiddlewareFunc(MeHandler)).Methods("GET", "OPTIONS")
 
-	// 3. API endpoints (защищенные, проксируются на сервисы)
+	// 4. API endpoints (защищенные, проксируются на сервисы)
 	apiRouter := router.PathPrefix("/api").Subrouter()
 	apiRouter.Use(AuthMiddleware) // Проверка JWT
 
@@ -60,9 +63,6 @@ func SetupRouter() *mux.Router {
 	adminRouter := apiRouter.PathPrefix("/admin").Subrouter()
 	adminRouter.Use(AdminMiddleware) // Проверка роли
 	adminRouter.PathPrefix("/").HandlerFunc(ProxyHandler(mainService))
-
-	// 4. WebSocket (защищенный)
-	router.HandleFunc("/ws", AuthMiddlewareFunc(WebSocketProxyHandler(mainService)))
 
 	// 5. Frontend (ПОСЛЕДНИЙ маршрут, ловит всё остальное)
 	router.PathPrefix("/").HandlerFunc(ProxyHandler(mainService))
