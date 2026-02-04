@@ -318,29 +318,30 @@ func MeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Парсим ответ от Auth Service
+	// Парсим ответ от Auth Service - Gateway возвращает {success: true, user: {...}}
 	var authResp struct {
-		Success bool `json:"success"`
-		Data    struct {
-			User struct {
-				ID                int    `json:"id"`
-				Email             string `json:"email"`
-				Name              string `json:"name"`
-				LastName          string `json:"last_name"`
-				Bio               string `json:"bio"`
-				Phone             string `json:"phone"`
-				Location          string `json:"location"`
-				Avatar            string `json:"avatar"`
-				CoverPhoto        string `json:"cover_photo"`
-				ProfileVisibility string `json:"profile_visibility"`
-				ShowPhone         string `json:"show_phone"`
-				ShowEmail         string `json:"show_email"`
-				AllowMessages     string `json:"allow_messages"`
-				ShowOnline        string `json:"show_online"`
-				Verified          bool   `json:"verified"`
-				CreatedAt         string `json:"created_at"`
-			} `json:"user"`
-		} `json:"data"`
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+		Token   string `json:"token"`
+		User    struct {
+			ID                int    `json:"id"`
+			Email             string `json:"email"`
+			Name              string `json:"name"`
+			LastName          string `json:"last_name"`
+			Bio               string `json:"bio"`
+			Phone             string `json:"phone"`
+			Location          string `json:"location"`
+			Avatar            string `json:"avatar"`
+			CoverPhoto        string `json:"cover_photo"`
+			ProfileVisibility string `json:"profile_visibility"`
+			ShowPhone         bool   `json:"show_phone"`     // boolean, не string
+			ShowEmail         bool   `json:"show_email"`     // boolean, не string
+			AllowMessages     bool   `json:"allow_messages"` // boolean, не string
+			ShowOnline        bool   `json:"show_online"`    // boolean, не string
+			Verified          bool   `json:"verified"`
+			Role              string `json:"role"`
+			CreatedAt         string `json:"created_at"`
+		} `json:"user"`
 	}
 
 	if err := json.Unmarshal(body, &authResp); err != nil {
@@ -350,29 +351,47 @@ func MeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("🔍 Received from Auth Service: last_name=%s, phone=%s, location=%s, bio=%s",
-		authResp.Data.User.LastName, authResp.Data.User.Phone, authResp.Data.User.Location, authResp.Data.User.Bio)
+		authResp.User.LastName, authResp.User.Phone, authResp.User.Location, authResp.User.Bio)
+
+	// Конвертируем boolean в string для совместимости с Main Service БД
+	showPhone := "nobody"
+	if authResp.User.ShowPhone {
+		showPhone = "everyone"
+	}
+	showEmail := "nobody"
+	if authResp.User.ShowEmail {
+		showEmail = "everyone"
+	}
+	allowMessages := "nobody"
+	if authResp.User.AllowMessages {
+		allowMessages = "everyone"
+	}
+	showOnline := "no"
+	if authResp.User.ShowOnline {
+		showOnline = "yes"
+	}
 
 	// Формируем ответ в формате Main Backend (передаем ВСЕ поля от Auth Service)
 	response := map[string]interface{}{
 		"success": true,
 		"data": map[string]interface{}{
 			"user": map[string]interface{}{
-				"id":                 authResp.Data.User.ID,
-				"name":               authResp.Data.User.Name,
-				"last_name":          authResp.Data.User.LastName,
-				"email":              authResp.Data.User.Email,
-				"bio":                authResp.Data.User.Bio,
-				"phone":              authResp.Data.User.Phone,
-				"location":           authResp.Data.User.Location,
-				"avatar":             authResp.Data.User.Avatar,
-				"cover_photo":        authResp.Data.User.CoverPhoto,
-				"profile_visibility": authResp.Data.User.ProfileVisibility,
-				"show_phone":         authResp.Data.User.ShowPhone,
-				"show_email":         authResp.Data.User.ShowEmail,
-				"allow_messages":     authResp.Data.User.AllowMessages,
-				"show_online":        authResp.Data.User.ShowOnline,
-				"verified":           authResp.Data.User.Verified,
-				"created_at":         authResp.Data.User.CreatedAt,
+				"id":                 authResp.User.ID,
+				"name":               authResp.User.Name,
+				"last_name":          authResp.User.LastName,
+				"email":              authResp.User.Email,
+				"bio":                authResp.User.Bio,
+				"phone":              authResp.User.Phone,
+				"location":           authResp.User.Location,
+				"avatar":             authResp.User.Avatar,
+				"cover_photo":        authResp.User.CoverPhoto,
+				"profile_visibility": authResp.User.ProfileVisibility,
+				"show_phone":         showPhone,
+				"show_email":         showEmail,
+				"allow_messages":     allowMessages,
+				"show_online":        showOnline,
+				"verified":           authResp.User.Verified,
+				"created_at":         authResp.User.CreatedAt,
 			},
 			"token": token,
 		},
@@ -380,7 +399,7 @@ func MeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(response)
-	log.Printf("✅ User profile loaded via Auth Service: %s", authResp.Data.User.Email)
+	log.Printf("✅ User profile loaded via Auth Service: %s", authResp.User.Email)
 }
 
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
