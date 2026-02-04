@@ -11,7 +11,7 @@ RUN echo "Building from commit: ${GIT_SHA}"
 COPY frontend/package*.json ./
 
 # Install dependencies (no @pet/shared dependency)
-RUN npm ci
+RUN npm cache clean --force && npm ci
 
 # Copy frontend source
 COPY frontend/ ./
