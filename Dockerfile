@@ -3,6 +3,10 @@ FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
+# Invalidate cache on every build
+ARG GIT_SHA
+RUN echo "Building from commit: ${GIT_SHA}"
+
 # Copy frontend package files
 COPY frontend/package*.json ./
 
