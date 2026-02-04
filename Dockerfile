@@ -6,6 +6,7 @@ WORKDIR /app/frontend
 # Invalidate cache on every build
 ARG GIT_SHA
 RUN echo "Building from commit: ${GIT_SHA}"
+RUN echo "Build ID: d20c4c5-fix-auth-response"
 
 # Accept NEXT_PUBLIC_API_URL as build argument
 ARG NEXT_PUBLIC_API_URL
