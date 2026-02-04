@@ -9,16 +9,16 @@ import (
 func SetupRouter() *mux.Router {
 	router := mux.NewRouter()
 
-	// Применяем глобальные middleware
+	// 1. Health check (публичный, БЕЗ LoggingMiddleware)
+	router.HandleFunc("/health", HealthCheckHandler).Methods("GET", "OPTIONS")
+
+	// 2. WebSocket (ВАЖНО: БЕЗ LoggingMiddleware для поддержки Hijacking)
+	router.HandleFunc("/ws", WebSocketProxyHandler(mainService)).Methods("GET")
+
+	// Применяем глобальные middleware для остальных маршрутов
 	router.Use(LoggingMiddleware)
 	router.Use(CORSMiddleware)
 	router.Use(RateLimitMiddleware)
-
-	// 1. Health check (публичный)
-	router.HandleFunc("/health", HealthCheckHandler).Methods("GET", "OPTIONS")
-
-	// 2. WebSocket (ВАЖНО: ДО всех PathPrefix, защищенный)
-	router.HandleFunc("/ws", WebSocketProxyHandler(mainService)).Methods("GET")
 
 	// 3. Auth endpoints (публичные, обрабатывает Gateway)
 	authRouter := router.PathPrefix("/api/auth").Subrouter()

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/websocket"
@@ -13,6 +14,8 @@ import (
 
 func WebSocketProxyHandler(service *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
 		// 1. Читаем токен из cookie или query
 		var tokenString string
 
@@ -27,6 +30,7 @@ func WebSocketProxyHandler(service *Service) http.HandlerFunc {
 
 		if tokenString == "" {
 			log.Printf("❌ WebSocket: No token provided")
+			log.Printf("📋 GET /ws 401 %dms %s", time.Since(start).Milliseconds(), r.RemoteAddr)
 			http.Error(w, "Unauthorized: no token", http.StatusUnauthorized)
 			return
 		}
@@ -39,6 +43,7 @@ func WebSocketProxyHandler(service *Service) http.HandlerFunc {
 
 		if err != nil || !token.Valid {
 			log.Printf("❌ WebSocket: Invalid token: %v", err)
+			log.Printf("📋 GET /ws 401 %dms %s", time.Since(start).Milliseconds(), r.RemoteAddr)
 			http.Error(w, "Unauthorized: invalid token", http.StatusUnauthorized)
 			return
 		}
@@ -69,6 +74,7 @@ func WebSocketProxyHandler(service *Service) http.HandlerFunc {
 			if resp != nil {
 				log.Printf("❌ Backend response status: %d", resp.StatusCode)
 			}
+			log.Printf("📋 GET /ws 502 %dms %s", time.Since(start).Milliseconds(), r.RemoteAddr)
 			http.Error(w, "Backend unavailable", http.StatusBadGateway)
 			return
 		}
@@ -92,11 +98,13 @@ func WebSocketProxyHandler(service *Service) http.HandlerFunc {
 		clientConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Printf("❌ Failed to upgrade client connection: %v", err)
+			log.Printf("📋 GET /ws 500 %dms %s", time.Since(start).Milliseconds(), r.RemoteAddr)
 			return
 		}
 		defer clientConn.Close()
 
 		log.Printf("✅ Client WebSocket upgraded for user_id=%d", claims.UserID)
+		log.Printf("📋 GET /ws 101 %dms %s", time.Since(start).Milliseconds(), r.RemoteAddr)
 
 		// 5. Проксируем сообщения в обе стороны
 		errChan := make(chan error, 2)
