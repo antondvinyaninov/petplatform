@@ -1,6 +1,8 @@
 package main
 
 import (
+	"net/http"
+
 	"github.com/gorilla/mux"
 )
 
@@ -64,8 +66,30 @@ func SetupRouter() *mux.Router {
 	adminRouter.Use(AdminMiddleware) // Проверка роли
 	adminRouter.PathPrefix("/").HandlerFunc(ProxyHandler(mainService))
 
-	// 5. Frontend (ПОСЛЕДНИЙ маршрут, ловит всё остальное)
-	router.PathPrefix("/").HandlerFunc(ProxyHandler(mainService))
+	// 5. Gateway root - показывает статус (НЕ frontend!)
+	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		respondJSON(w, map[string]interface{}{
+			"service": "ZooPlatforma API Gateway",
+			"version": "1.2.1",
+			"status":  "running",
+			"role":    "API Gateway & SSO Provider",
+			"endpoints": map[string]string{
+				"health":    "GET /health",
+				"login":     "POST /api/auth/login",
+				"register":  "POST /api/auth/register",
+				"logout":    "POST /api/auth/logout",
+				"me":        "GET /api/auth/me",
+				"websocket": "WS /ws (requires auth_token cookie)",
+				"main_api":  "/api/* → Main Service",
+				"petbase":   "/api/petbase/* → PetBase Service (if configured)",
+				"clinic":    "/api/clinic/* → Clinic Service (if configured)",
+				"shelter":   "/api/shelter/* → Shelter Service (if configured)",
+				"volunteer": "/api/volunteer/* → Volunteer Service (if configured)",
+			},
+			"frontend": "https://my-projects-zooplatforma.crv1ic.easypanel.host",
+		})
+	}).Methods("GET")
 
 	return router
 }
