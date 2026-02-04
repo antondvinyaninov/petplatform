@@ -78,6 +78,15 @@ func WebSocketProxyHandler(service *Service) http.HandlerFunc {
 			return nil
 		}
 
+		// КРИТИЧНО: Добавляем ErrorHandler для отладки
+		proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+			log.Printf("❌ ReverseProxy error for WebSocket: %v", err)
+			log.Printf("❌ Request URL: %s", r.URL.String())
+			log.Printf("❌ Target: %s", target.String())
+			log.Printf("❌ Request headers: %v", r.Header)
+			http.Error(w, fmt.Sprintf("Bad Gateway: %v", err), http.StatusBadGateway)
+		}
+
 		// Проксируем запрос
 		proxy.ServeHTTP(w, r)
 
