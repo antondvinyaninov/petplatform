@@ -8,9 +8,15 @@ ARG GIT_SHA
 RUN echo "Building from commit: ${GIT_SHA}"
 RUN echo "Build ID: d20c4c5-fix-auth-response"
 
-# Accept NEXT_PUBLIC_API_URL as build argument
+# Accept NEXT_PUBLIC_* as build arguments
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
+ARG NEXT_PUBLIC_DADATA_API_KEY
+ENV NEXT_PUBLIC_DADATA_API_KEY=${NEXT_PUBLIC_DADATA_API_KEY}
+
+ARG NEXT_PUBLIC_YANDEX_MAPS_API_KEY
+ENV NEXT_PUBLIC_YANDEX_MAPS_API_KEY=${NEXT_PUBLIC_YANDEX_MAPS_API_KEY}
 
 # Copy frontend package files (only package.json, not lock file)
 COPY frontend/package.json ./
