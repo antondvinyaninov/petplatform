@@ -1,0 +1,322 @@
+#!/bin/bash
+
+# Добавляем Go bin в PATH
+export PATH=$PATH:$(go env GOPATH)/bin
+
+echo "🚀 Starting Main Project..."
+echo ""
+
+# Цвета для вывода
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+# Функция для проверки порта
+check_port() {
+    lsof -ti:$1 >/dev/null 2>&1
+}
+
+# Функция для очистки порта
+clean_port() {
+    if check_port $1; then
+        echo -e "${YELLOW}🧹 Cleaning port $1...${NC}"
+        lsof -ti:$1 | xargs kill -9 2>/dev/null || true
+        sleep 1
+    fi
+}
+
+# Функция для проверки HTTP endpoint
+check_http() {
+    local url=$1
+    local name=$2
+    echo -e "${BLUE}🔍 Checking $name...${NC}"
+    
+    response=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "$url" 2>/dev/null)
+    
+    if [ "$response" = "200" ] || [ "$response" = "404" ] || [ "$response" = "503" ]; then
+        echo -e "${GREEN}✅ $name is reachable (HTTP $response)${NC}"
+        return 0
+    else
+        echo -e "${RED}❌ $name is not reachable (HTTP $response)${NC}"
+        return 1
+    fi
+}
+
+# Функция для проверки PostgreSQL
+check_postgres() {
+    echo -e "${BLUE}🔍 Checking PostgreSQL connection...${NC}"
+    
+    # Проверяем наличие .env
+    if [ ! -f "backend/.env" ]; then
+        echo -e "${RED}❌ .env file not found in backend/${NC}"
+        return 1
+    fi
+    
+    # Читаем DATABASE_URL
+    DB_URL=$(grep "^DATABASE_URL=" backend/.env | cut -d '=' -f2-)
+    
+    if [ -z "$DB_URL" ]; then
+        echo -e "${RED}❌ DATABASE_URL not found in .env${NC}"
+        return 1
+    fi
+    
+    # Показываем информацию о БД
+    DB_HOST=$(echo "$DB_URL" | sed -n 's/.*@\([^:]*\):.*/\1/p')
+    DB_PORT=$(echo "$DB_URL" | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
+    DB_NAME=$(echo "$DB_URL" | sed -n 's/.*\/\([^?]*\).*/\1/p')
+    
+    echo -e "${BLUE}   Host: $DB_HOST:$DB_PORT${NC}"
+    echo -e "${BLUE}   Database: $DB_NAME${NC}"
+    
+    # Запускаем Go скрипт для проверки
+    echo -e "${BLUE}   Testing connection...${NC}"
+    
+    check_result=$(cd backend/scripts/check_db && go run main.go 2>&1)
+    check_status=$?
+    
+    if [ $check_status -eq 0 ] && [ "$check_result" = "OK" ]; then
+        echo -e "${GREEN}✅ PostgreSQL connection successful${NC}"
+        echo -e "${GREEN}   All required tables exist${NC}"
+        return 0
+    else
+        echo -e "${RED}❌ PostgreSQL connection failed${NC}"
+        echo -e "${RED}   Error: $check_result${NC}"
+        return 1
+    fi
+}
+
+# Очистка кэша
+echo -e "${BLUE}🧹 Cleaning cache...${NC}"
+rm -rf frontend/.next 2>/dev/null || true
+echo -e "${GREEN}✅ Cache cleared${NC}"
+echo ""
+
+# Очистка портов
+echo -e "${BLUE}🧹 Cleaning up ports...${NC}"
+clean_port 8000  # Main Backend
+clean_port 3000  # Main Frontend
+echo -e "${GREEN}✅ Ports cleared${NC}"
+echo ""
+
+# Проверка внешних подключений
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${BLUE}🔍 Checking external connections...${NC}"
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+
+# Проверка Gateway
+GATEWAY_OK=false
+if check_http "https://my-projects-gateway-zp.crv1ic.easypanel.host/" "API Gateway"; then
+    GATEWAY_OK=true
+    
+    # Проверяем health endpoint
+    echo -e "${BLUE}🔍 Checking Gateway services...${NC}"
+    gateway_health=$(curl -s "https://my-projects-gateway-zp.crv1ic.easypanel.host/health" 2>/dev/null)
+    
+    if [ ! -z "$gateway_health" ]; then
+        # Проверяем статус main_backend
+        main_status=$(echo "$gateway_health" | grep -o '"main_backend":{"healthy":[^}]*}' | grep -o 'true\|false')
+        
+        if [ "$main_status" = "true" ]; then
+            echo -e "${GREEN}   ✅ Main Backend is healthy in Gateway${NC}"
+        else
+            echo -e "${YELLOW}   ⚠️  Main Backend is not healthy in Gateway (will start locally)${NC}"
+        fi
+    fi
+else
+    echo -e "${YELLOW}⚠️  Gateway is not reachable - will use local mode${NC}"
+fi
+echo ""
+
+# Проверка PostgreSQL
+POSTGRES_OK=false
+if check_postgres; then
+    POSTGRES_OK=true
+else
+    echo -e "${RED}❌ Cannot connect to PostgreSQL - please check DATABASE_URL in .env${NC}"
+    exit 1
+fi
+echo ""
+
+# Проверка S3 (опционально)
+S3_OK=false
+USE_S3=$(grep "^USE_S3=" backend/.env | cut -d '=' -f2-)
+if [ "$USE_S3" = "true" ]; then
+    echo -e "${BLUE}🔍 Checking S3 storage...${NC}"
+    
+    s3_result=$(cd backend/scripts/test_s3 && go run main.go 2>&1 | tail -1)
+    
+    if echo "$s3_result" | grep -q "All S3 tests passed"; then
+        echo -e "${GREEN}✅ S3 storage is accessible${NC}"
+        S3_OK=true
+    else
+        echo -e "${YELLOW}⚠️  S3 storage check failed${NC}"
+        echo -e "${YELLOW}   Will fall back to local storage${NC}"
+        S3_OK=false
+    fi
+    echo ""
+else
+    echo -e "${BLUE}📁 Using local file storage (USE_S3=false)${NC}"
+    echo ""
+fi
+
+# Итоговая проверка
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${BLUE}📊 Connection Status:${NC}"
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+if [ "$GATEWAY_OK" = true ]; then
+    echo -e "${GREEN}✅ API Gateway: Connected${NC}"
+else
+    echo -e "${YELLOW}⚠️  API Gateway: Not available (local mode)${NC}"
+fi
+if [ "$POSTGRES_OK" = true ]; then
+    echo -e "${GREEN}✅ PostgreSQL: Connected${NC}"
+else
+    echo -e "${RED}❌ PostgreSQL: Not connected${NC}"
+fi
+if [ "$USE_S3" = "true" ]; then
+    if [ "$S3_OK" = true ]; then
+        echo -e "${GREEN}✅ S3 Storage: Connected${NC}"
+    else
+        echo -e "${YELLOW}⚠️  S3 Storage: Not available (using local)${NC}"
+    fi
+else
+    echo -e "${BLUE}📁 File Storage: Local${NC}"
+fi
+echo ""
+
+# Проверяем что PostgreSQL доступен
+if [ "$POSTGRES_OK" = false ]; then
+    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${RED}❌ Cannot start without PostgreSQL connection${NC}"
+    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo -e "${YELLOW}Please check:${NC}"
+    echo -e "  1. DATABASE_URL is set correctly in backend/.env"
+    echo -e "  2. PostgreSQL server is running and accessible"
+    echo -e "  3. Required tables (users, chats, messages) exist"
+    echo ""
+    exit 1
+fi
+
+# Запуск Main Backend
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${BLUE}🚀 Starting services...${NC}"
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+
+echo -e "${BLUE}🔧 Starting Main Backend on port 8000...${NC}"
+
+# Проверяем наличие air
+if command -v air &> /dev/null; then
+    (cd backend && air) > /tmp/main-backend.log 2>&1 &
+    BACKEND_PID=$!
+    echo -e "${BLUE}   Using air for hot reload${NC}"
+else
+    (cd backend && go run main.go) > /tmp/main-backend.log 2>&1 &
+    BACKEND_PID=$!
+    echo -e "${YELLOW}   air not found, using 'go run' (install air for hot reload)${NC}"
+fi
+
+# Ждем пока Backend запустится (максимум 30 секунд)
+echo -e "${BLUE}   Waiting for Backend to start...${NC}"
+BACKEND_READY=false
+for i in {1..30}; do
+    if check_port 8000; then
+        # Проверяем health endpoint
+        health_check=$(curl -s http://localhost:8000/api/health 2>/dev/null)
+        if [ ! -z "$health_check" ] && echo "$health_check" | grep -q "ok"; then
+            BACKEND_READY=true
+            break
+        fi
+    fi
+    sleep 1
+done
+
+if [ "$BACKEND_READY" = true ]; then
+    echo -e "${GREEN}✅ Main Backend started (PID: $BACKEND_PID)${NC}"
+    echo -e "${GREEN}   Health check: OK${NC}"
+else
+    echo -e "${RED}❌ Failed to start Main Backend (timeout after 30s)${NC}"
+    echo -e "${RED}Last 30 lines of log:${NC}"
+    tail -30 /tmp/main-backend.log
+    kill $BACKEND_PID 2>/dev/null
+    exit 1
+fi
+echo ""
+
+# Запуск Main Frontend
+echo -e "${BLUE}⚛️  Starting Main Frontend on port 3000...${NC}"
+(cd frontend && npm run dev) > /tmp/main-frontend.log 2>&1 &
+FRONTEND_PID=$!
+
+# Ждем пока Frontend запустится (максимум 60 секунд)
+echo -e "${BLUE}   Waiting for Frontend to start...${NC}"
+FRONTEND_READY=false
+for i in {1..60}; do
+    if check_port 3000; then
+        # Проверяем что Next.js готов
+        frontend_check=$(curl -s http://localhost:3000 2>/dev/null)
+        if [ ! -z "$frontend_check" ]; then
+            FRONTEND_READY=true
+            break
+        fi
+    fi
+    sleep 1
+done
+
+if [ "$FRONTEND_READY" = true ]; then
+    echo -e "${GREEN}✅ Main Frontend started (PID: $FRONTEND_PID)${NC}"
+else
+    echo -e "${RED}❌ Failed to start Main Frontend (timeout after 60s)${NC}"
+    echo -e "${RED}Last 30 lines of log:${NC}"
+    tail -30 /tmp/main-frontend.log
+    kill $BACKEND_PID $FRONTEND_PID 2>/dev/null
+    exit 1
+fi
+echo ""
+
+# Успешный запуск
+echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${GREEN}✅ Main Project successfully started!${NC}"
+echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+echo -e "${BLUE}📍 Local Services:${NC}"
+echo -e "   🔧 Main Backend:    http://localhost:8000"
+echo -e "   🌐 Main Frontend:   ${GREEN}http://localhost:3000${NC}"
+echo ""
+echo -e "${BLUE}📍 External Services:${NC}"
+if [ "$GATEWAY_OK" = true ]; then
+    echo -e "   🌐 API Gateway:     ${GREEN}https://my-projects-gateway-zp.crv1ic.easypanel.host/${NC}"
+else
+    echo -e "   🌐 API Gateway:     ${YELLOW}Not available${NC}"
+fi
+if [ "$POSTGRES_OK" = true ]; then
+    echo -e "   💾 PostgreSQL:      ${GREEN}Connected${NC}"
+fi
+if [ "$USE_S3" = "true" ] && [ "$S3_OK" = true ]; then
+    echo -e "   ☁️  S3 Storage:      ${GREEN}Connected (FirstVDS)${NC}"
+elif [ "$USE_S3" = "true" ]; then
+    echo -e "   ☁️  S3 Storage:      ${YELLOW}Fallback to local${NC}"
+else
+    echo -e "   📁 File Storage:    ${BLUE}Local${NC}"
+fi
+echo ""
+echo -e "${YELLOW}📝 Logs:${NC}"
+echo -e "   Backend:  tail -f /tmp/main-backend.log"
+echo -e "   Frontend: tail -f /tmp/main-frontend.log"
+echo ""
+echo -e "${YELLOW}🔧 Useful commands:${NC}"
+echo -e "   Check Backend:  curl http://localhost:8000/api/health"
+echo -e "   Check Gateway:  curl https://my-projects-gateway-zp.crv1ic.easypanel.host/health"
+echo ""
+echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"
+echo ""
+
+# Обработка Ctrl+C
+trap "echo ''; echo -e '${RED}🛑 Stopping all services...${NC}'; kill $BACKEND_PID $FRONTEND_PID 2>/dev/null; sleep 1; echo -e '${GREEN}✅ All services stopped${NC}'; exit" INT
+
+# Ожидание
+wait

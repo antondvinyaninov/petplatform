@@ -1,0 +1,64 @@
+# Environment variables
+.env
+.env.local
+.env.production
+.env.backup
+*.env.backup*
+
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Build outputs
+backend/backend
+backend/server
+backend/test_build
+backend/test-build
+backend/data.db
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go
+*.test
+*.out
+go.work
+
+# Frontend
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.vercel/
+frontend/tsconfig.tsbuildinfo
+
+# Logs
+*.log
+/tmp/
+*.log.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Uploads (local development)
+backend/uploads/
+
+# Backup files
+*.backup
+*.backup2
+*.bak*
+*.broken
+
+# Scripts output
+backend/scripts/check_db/check_db
+backend/scripts/test_s3/test_s3
+backend/scripts/check_user_activity/check_user_activity
+backend/scripts/migrate_add_geolocation/migrate_add_geolocation

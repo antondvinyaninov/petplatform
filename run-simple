@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# Добавляем Go bin в PATH
+export PATH=$PATH:$(go env GOPATH)/bin
+
+# Простой скрипт запуска Main проекта
+# Запускает только необходимые сервисы
+
+echo "🚀 Starting Main Project (Simple Mode)..."
+
+# Очистка портов
+lsof -ti:7100 | xargs kill -9 2>/dev/null || true
+lsof -ti:8100 | xargs kill -9 2>/dev/null || true
+lsof -ti:8000 | xargs kill -9 2>/dev/null || true
+lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+
+# Очистка кэша
+rm -rf frontend/.next 2>/dev/null || true
+
+# Запуск сервисов
+echo "🔐 Starting Auth Service..."
+(cd ../auth/backend && go run .) &
+
+echo "🐾 Starting PetBase Service..."
+(cd ../petbase/backend && go run .) &
+
+sleep 3
+
+echo "🔧 Starting Main Backend..."
+(cd backend && air) &
+
+sleep 3
+
+echo "⚛️  Starting Main Frontend..."
+(cd frontend && npm run dev) &
+
+sleep 3
+
+echo ""
+echo "✅ Main Project started!"
+echo ""
+echo "   🌐 Main Frontend:   http://localhost:3000"
+echo "   🔧 Main Backend:    http://localhost:8000"
+echo "   🐾 PetBase Service: http://localhost:8100"
+echo "   🔐 Auth Service:    http://localhost:7100"
+echo ""
+echo "Press Ctrl+C to stop"
+
+wait
