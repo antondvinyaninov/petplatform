@@ -130,7 +130,10 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		// Получаем пользователя из БД с ролью
 		var user User
 		query := `
-			SELECT u.id, u.email, u.name, u.last_name, u.created_at,
+			SELECT u.id, u.email, u.name, u.last_name,
+			       u.bio, u.phone, u.location, u.avatar, u.cover_photo,
+			       u.profile_visibility, u.show_phone, u.show_email,
+			       u.allow_messages, u.show_online, u.verified, u.created_at,
 			       COALESCE(ur.role, 'user') as role
 			FROM users u
 			LEFT JOIN user_roles ur ON u.id = ur.user_id AND ur.is_active = true
@@ -139,7 +142,10 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		err = db.QueryRow(query, claims.UserID).Scan(
 			&user.ID, &user.Email, &user.Name, &user.LastName,
-			&user.CreatedAt, &user.Role,
+			&user.Bio, &user.Phone, &user.Location, &user.Avatar,
+			&user.CoverPhoto, &user.ProfileVisibility, &user.ShowPhone,
+			&user.ShowEmail, &user.AllowMessages, &user.ShowOnline,
+			&user.Verified, &user.CreatedAt, &user.Role,
 		)
 
 		if err == sql.ErrNoRows {

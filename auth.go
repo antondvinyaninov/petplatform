@@ -13,13 +13,24 @@ import (
 )
 
 type User struct {
-	ID           int       `json:"id"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"-"`
-	Name         string    `json:"name"`
-	LastName     string    `json:"last_name"`
-	Role         string    `json:"role"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID                int       `json:"id"`
+	Email             string    `json:"email"`
+	PasswordHash      string    `json:"-"`
+	Name              string    `json:"name"`
+	LastName          string    `json:"last_name"`
+	Bio               *string   `json:"bio"`
+	Phone             *string   `json:"phone"`
+	Location          *string   `json:"location"`
+	Avatar            *string   `json:"avatar"`
+	CoverPhoto        *string   `json:"cover_photo"`
+	ProfileVisibility string    `json:"profile_visibility"`
+	ShowPhone         bool      `json:"show_phone"`
+	ShowEmail         bool      `json:"show_email"`
+	AllowMessages     bool      `json:"allow_messages"`
+	ShowOnline        bool      `json:"show_online"`
+	Verified          bool      `json:"verified"`
+	Role              string    `json:"role"`
+	CreatedAt         time.Time `json:"created_at"`
 }
 
 type RegisterRequest struct {
@@ -139,10 +150,13 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Находим пользователя с ролью
+	// Находим пользователя с ролью и всеми полями
 	var user User
 	query := `
-		SELECT u.id, u.email, u.password, u.name, u.last_name, u.created_at,
+		SELECT u.id, u.email, u.password, u.name, u.last_name, 
+		       u.bio, u.phone, u.location, u.avatar, u.cover_photo,
+		       u.profile_visibility, u.show_phone, u.show_email, 
+		       u.allow_messages, u.show_online, u.verified, u.created_at,
 		       COALESCE(ur.role, 'user') as role
 		FROM users u
 		LEFT JOIN user_roles ur ON u.id = ur.user_id AND ur.is_active = true
@@ -151,7 +165,10 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := db.QueryRow(query, req.Email).Scan(
 		&user.ID, &user.Email, &user.PasswordHash, &user.Name,
-		&user.LastName, &user.CreatedAt, &user.Role,
+		&user.LastName, &user.Bio, &user.Phone, &user.Location,
+		&user.Avatar, &user.CoverPhoto, &user.ProfileVisibility,
+		&user.ShowPhone, &user.ShowEmail, &user.AllowMessages,
+		&user.ShowOnline, &user.Verified, &user.CreatedAt, &user.Role,
 	)
 
 	if err == sql.ErrNoRows {
