@@ -126,6 +126,11 @@ func main() {
 	log.Println("✅ WebSocket hub initialized")
 
 	// Public API routes (register BEFORE root route)
+	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("pong"))
+	})
 	http.HandleFunc("/api/health", enableCORS(handleHealth))
 	http.HandleFunc("/api/auth/register", enableCORS(handlers.RegisterHandler))
 	http.HandleFunc("/api/auth/login", enableCORS(handlers.LoginHandler))

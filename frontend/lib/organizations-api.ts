@@ -96,12 +96,13 @@ export interface CreateOrganizationData {
   address_street?: string;
   address_house?: string;
   address_office?: string;
-  geo_lat?: number;
-  geo_lon?: number;
+  geo_lat?: number | null;
+  geo_lon?: number | null;
   description?: string;
   bio?: string;
   director_name?: string;
   director_position?: string;
+  is_representative?: boolean;
 }
 
 export interface UpdateOrganizationData {

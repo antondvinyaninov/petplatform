@@ -106,8 +106,12 @@ interface Post {
   organization?: Organization;
   pets?: Pet[];
   poll?: Poll;
+  has_poll?: boolean;
   comments_count: number;
   can_edit?: boolean; // ✅ Добавлено поле can_edit из Backend
+  location_lat?: number;
+  location_lon?: number;
+  location_name?: string;
 }
 
 interface PostCardProps {
