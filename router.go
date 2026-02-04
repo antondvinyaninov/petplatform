@@ -9,19 +9,18 @@ import (
 func SetupRouter() *mux.Router {
 	router := mux.NewRouter()
 
-	// 1. Health check (публичный, БЕЗ LoggingMiddleware)
+	// 1. Health check (публичный, БЕЗ middleware)
 	router.HandleFunc("/health", HealthCheckHandler).Methods("GET", "OPTIONS")
 
-	// 2. WebSocket (ВАЖНО: БЕЗ LoggingMiddleware для поддержки Hijacking)
+	// 2. WebSocket (КРИТИЧНО: БЕЗ LoggingMiddleware!)
+	// НЕ используем router.Use() для WebSocket
 	router.HandleFunc("/ws", WebSocketProxyHandler(mainService)).Methods("GET")
 
-	// Применяем глобальные middleware для остальных маршрутов
-	router.Use(LoggingMiddleware)
-	router.Use(CORSMiddleware)
-	router.Use(RateLimitMiddleware)
-
-	// 3. Auth endpoints (публичные, обрабатывает Gateway)
+	// 3. Auth endpoints (публичные, С middleware)
 	authRouter := router.PathPrefix("/api/auth").Subrouter()
+	authRouter.Use(LoggingMiddleware)
+	authRouter.Use(CORSMiddleware)
+	authRouter.Use(RateLimitMiddleware)
 	authRouter.HandleFunc("/register", RegisterHandler).Methods("POST", "OPTIONS")
 	authRouter.HandleFunc("/login", LoginHandler).Methods("POST", "OPTIONS")
 	authRouter.HandleFunc("/logout", LogoutHandler).Methods("POST", "OPTIONS")
@@ -29,6 +28,9 @@ func SetupRouter() *mux.Router {
 
 	// 4. API endpoints (защищенные, проксируются на сервисы)
 	apiRouter := router.PathPrefix("/api").Subrouter()
+	apiRouter.Use(LoggingMiddleware)
+	apiRouter.Use(CORSMiddleware)
+	apiRouter.Use(RateLimitMiddleware)
 	apiRouter.Use(AuthMiddleware) // Проверка JWT
 
 	// Специфичные маршруты сервисов (должны быть ПЕРЕД общими)
