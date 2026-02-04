@@ -22,11 +22,25 @@ func SetupRouter() *mux.Router {
 	authRouter.HandleFunc("/logout", LogoutHandler).Methods("POST", "OPTIONS")
 	authRouter.HandleFunc("/me", AuthMiddlewareFunc(MeHandler)).Methods("GET", "OPTIONS")
 
-	// 3. API endpoints (защищенные, проксируются на Main Service)
+	// 3. API endpoints (защищенные, проксируются на сервисы)
 	apiRouter := router.PathPrefix("/api").Subrouter()
 	apiRouter.Use(AuthMiddleware) // Проверка JWT
 
-	// Main Backend endpoints
+	// Специфичные маршруты сервисов (должны быть ПЕРЕД общими)
+	if clinicService != nil {
+		apiRouter.PathPrefix("/clinic").HandlerFunc(ProxyHandler(clinicService))
+	}
+	if petbaseService != nil {
+		apiRouter.PathPrefix("/petbase").HandlerFunc(ProxyHandler(petbaseService))
+	}
+	if shelterService != nil {
+		apiRouter.PathPrefix("/shelter").HandlerFunc(ProxyHandler(shelterService))
+	}
+	if volunteerService != nil {
+		apiRouter.PathPrefix("/volunteer").HandlerFunc(ProxyHandler(volunteerService))
+	}
+
+	// Main Backend endpoints (общие маршруты)
 	apiRouter.PathPrefix("/posts").HandlerFunc(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/profile").HandlerFunc(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/users").HandlerFunc(ProxyHandler(mainService))
