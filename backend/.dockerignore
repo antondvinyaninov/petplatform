@@ -1,0 +1,46 @@
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+backend
+server
+test_build
+test-build
+
+# Test files
+*.test
+*.out
+
+# Development files
+.env
+.env.local
+.env.backup
+*.backup*
+*.bak*
+*.broken
+
+# Database
+data.db
+*.db
+
+# Logs
+*.log
+tmp/
+
+# Uploads
+uploads/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore

@@ -1,0 +1,81 @@
+name: Backend Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+    
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    
+    - name: Install dependencies
+      working-directory: ./backend
+      run: go mod download
+    
+    - name: Build
+      working-directory: ./backend
+      run: go build -v ./...
+    
+    - name: Run tests
+      working-directory: ./backend
+      run: go test -v ./...
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+    
+    - name: golangci-lint
+      uses: golangci/golangci-lint-action@v4
+      with:
+        version: latest
+        working-directory: ./backend
+        args: --timeout=5m
+
+  docker:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build Docker image
+      working-directory: ./backend
+      run: docker build -t petplatform-backend:test .
+    
+    - name: Test Docker image
+      run: |
+        docker run -d -p 8000:8000 \
+          -e PORT=8000 \
+          -e JWT_SECRET=test-secret \
+          -e DATABASE_URL=postgres://test:test@localhost:5432/test \
+          petplatform-backend:test
+        sleep 5
+        curl -f http://localhost:8000/api/health || exit 1
