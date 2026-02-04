@@ -46,8 +46,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (mounted && response.success) {
           // Gateway возвращает {success: true, user: {...}}
-          // Main Service возвращает {success: true, data: {user: {...}}}
-          const userData = (response as any).user || (response as any).data?.user || (response as any).data;
+          // Main Service возвращает {success: true, data: {user: {...}, token: ...}}
+          let userData = null;
+          
+          // Сначала проверяем data.user (Main Service)
+          if ((response as any).data?.user) {
+            userData = (response as any).data.user;
+          }
+          // Затем проверяем прямо user (Gateway)
+          else if ((response as any).user) {
+            userData = (response as any).user;
+          }
+          // Fallback на data (если это сам объект пользователя)
+          else if ((response as any).data?.id) {
+            userData = (response as any).data;
+          }
           
           if (userData && userData.id) {
             setUser(userData);
@@ -78,12 +91,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
+    console.log('🔐 Login attempt:', { email });
     const response = await authApi.login(email, password);
+    console.log('📥 Login response:', response);
     
     if (response.success && response.data) {
       const responseData = response.data as any;
       const user = responseData.user;
       const token = responseData.token;
+      console.log('✅ Login successful:', { user, token: token ? 'present' : 'missing' });
       
       // Сохраняем токен в localStorage (если Gateway вернул)
       if (token) {
@@ -104,6 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true };
     }
 
+    console.error('❌ Login failed:', { success: response.success, error: response.error });
     return { success: false, error: response.error };
   };
 
@@ -152,12 +169,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (authResponse.success) {
         // Gateway возвращает {success: true, user: {...}}
-        // Main Service возвращает {success: true, data: {user: {...}}}
-        const userData = (authResponse as any).user || (authResponse as any).data?.user || (authResponse as any).data;
+        // Main Service возвращает {success: true, data: {user: {...}, token: ...}}
+        let userData = null;
+        
+        // Сначала проверяем data.user (Main Service)
+        if ((authResponse as any).data?.user) {
+          userData = (authResponse as any).data.user;
+        }
+        // Затем проверяем прямо user (Gateway)
+        else if ((authResponse as any).user) {
+          userData = (authResponse as any).user;
+        }
+        // Fallback на data (если это сам объект пользователя)
+        else if ((authResponse as any).data?.id) {
+          userData = (authResponse as any).data;
+        }
         
         if (userData && userData.id) {
           console.log('✅ Setting user in context:', userData);
           setUser(userData);
+        } else {
+          console.error('❌ No valid user data found in response');
         }
       }
     } catch (error) {

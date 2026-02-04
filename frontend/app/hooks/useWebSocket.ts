@@ -76,10 +76,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     }
 
     // Определяем WebSocket URL
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsHost = process.env.NEXT_PUBLIC_API_URL 
-      ? new URL(process.env.NEXT_PUBLIC_API_URL).host 
-      : 'localhost:8000';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    
+    // Определяем протокол: если API URL использует https, используем wss
+    const wsProtocol = apiUrl.startsWith('https://') ? 'wss:' : 'ws:';
+    const wsHost = new URL(apiUrl).host;
     
     // Передаем токен через query параметр
     const wsUrl = `${wsProtocol}//${wsHost}/ws?token=${token}`;

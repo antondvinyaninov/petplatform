@@ -45,8 +45,10 @@ export class ApiClient {
   private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
     try {
       const result = await response.json();
+      console.log('📦 Response body:', result);
 
       if (!response.ok) {
+        console.error('❌ API Error:', { status: response.status, error: result.error });
         return {
           success: false,
           error: result.error || `API Error: ${response.statusText}`,
@@ -89,6 +91,7 @@ export class ApiClient {
 
   async post<T>(endpoint: string, body: unknown): Promise<ApiResponse<T>> {
     try {
+      console.log(`📤 POST ${endpoint}:`, body);
       const headers = await this.getHeaders();
       
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
@@ -98,6 +101,7 @@ export class ApiClient {
         body: JSON.stringify(body),
       });
 
+      console.log(`📥 Response ${endpoint}:`, { status: response.status, ok: response.ok });
       return this.handleResponse<T>(response);
     } catch (error) {
       console.error(`❌ Fetch error for ${endpoint}:`, error);

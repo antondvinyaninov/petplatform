@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // logSystemEvent - логирует событие в системе
@@ -58,11 +59,104 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 🔥 НОВОЕ: Используем Auth Service
+	// 🔥 DEV MODE: Работаем с локальной БД напрямую если AUTH_SERVICE_URL не установлен
 	authServiceURL := os.Getenv("AUTH_SERVICE_URL")
+
 	if authServiceURL == "" {
-		authServiceURL = "http://localhost:7100"
+		// Локальный режим - создаем пользователя в локальной БД
+		log.Printf("🔧 Dev mode: Using local database for registration")
+
+		// Проверяем, существует ли пользователь
+		var existingID int
+		err := db.DB.QueryRow(ConvertPlaceholders("SELECT id FROM users WHERE email = ?"), req.Email).Scan(&existingID)
+		if err == nil {
+			sendError(w, "Пользователь с таким email уже существует", http.StatusConflict)
+			return
+		}
+
+		// Хешируем пароль
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			log.Printf("❌ Failed to hash password: %v", err)
+			sendError(w, "Failed to process password", http.StatusInternalServerError)
+			return
+		}
+
+		// Создаем пользователя
+		result, err := db.DB.Exec(ConvertPlaceholders(`
+			INSERT INTO users (name, email, password, created_at)
+			VALUES (?, ?, ?, NOW())
+		`), req.Name, req.Email, string(hashedPassword))
+
+		if err != nil {
+			log.Printf("❌ Failed to create user: %v", err)
+			sendError(w, "Failed to create user", http.StatusInternalServerError)
+			return
+		}
+
+		userID, _ := result.LastInsertId()
+
+		// Генерируем JWT токен
+		jwtSecret := os.Getenv("JWT_SECRET")
+		if jwtSecret == "" {
+			sendError(w, "Server configuration error", http.StatusInternalServerError)
+			return
+		}
+
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"user_id": int(userID),
+			"email":   req.Email,
+			"role":    "user",
+			"exp":     time.Now().Add(7 * 24 * time.Hour).Unix(),
+			"iat":     time.Now().Unix(),
+		})
+
+		tokenString, err := token.SignedString([]byte(jwtSecret))
+		if err != nil {
+			log.Printf("❌ Failed to generate token: %v", err)
+			sendError(w, "Failed to generate token", http.StatusInternalServerError)
+			return
+		}
+
+		// Устанавливаем cookie
+		http.SetCookie(w, &http.Cookie{
+			Name:     "auth_token",
+			Value:    tokenString,
+			Path:     "/",
+			Domain:   "localhost",
+			HttpOnly: true,
+			Secure:   false,
+			SameSite: http.SameSiteLaxMode,
+			MaxAge:   86400 * 7, // 7 days
+		})
+
+		// Логируем регистрацию
+		ipAddress := r.RemoteAddr
+		userAgent := r.Header.Get("User-Agent")
+		userIDInt := int(userID)
+		CreateUserLog(db.DB, userIDInt, "register", "Пользователь зарегистрировался (Local DB)", ipAddress, userAgent)
+
+		// Формируем ответ
+		response := map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"user": map[string]interface{}{
+					"id":    userID,
+					"name":  req.Name,
+					"email": req.Email,
+				},
+				"token": tokenString,
+			},
+			"token": tokenString,
+		}
+
+		json.NewEncoder(w).Encode(response)
+		log.Printf("✅ User registered via local DB: %s (id=%d)", req.Email, userID)
+		return
 	}
+
+	// PRODUCTION MODE: Используем Auth Service (Gateway)
+	log.Printf("🌐 Production mode: Using Auth Service at %s", authServiceURL)
 
 	// Отправляем запрос к Auth Service
 	jsonData, _ := json.Marshal(req)
@@ -324,34 +418,61 @@ func MeHandler(w http.ResponseWriter, r *http.Request) {
 		Message string `json:"message"`
 		Token   string `json:"token"`
 		User    struct {
-			ID                int    `json:"id"`
-			Email             string `json:"email"`
-			Name              string `json:"name"`
-			LastName          string `json:"last_name"`
-			Bio               string `json:"bio"`
-			Phone             string `json:"phone"`
-			Location          string `json:"location"`
-			Avatar            string `json:"avatar"`
-			CoverPhoto        string `json:"cover_photo"`
-			ProfileVisibility string `json:"profile_visibility"`
-			ShowPhone         bool   `json:"show_phone"`     // boolean, не string
-			ShowEmail         bool   `json:"show_email"`     // boolean, не string
-			AllowMessages     bool   `json:"allow_messages"` // boolean, не string
-			ShowOnline        bool   `json:"show_online"`    // boolean, не string
-			Verified          bool   `json:"verified"`
-			Role              string `json:"role"`
-			CreatedAt         string `json:"created_at"`
+			ID                int     `json:"id"`
+			Email             string  `json:"email"`
+			Name              string  `json:"name"`
+			LastName          *string `json:"last_name"`   // может быть null
+			Bio               *string `json:"bio"`         // может быть null
+			Phone             *string `json:"phone"`       // может быть null
+			Location          *string `json:"location"`    // может быть null
+			Avatar            *string `json:"avatar"`      // может быть null
+			CoverPhoto        *string `json:"cover_photo"` // может быть null
+			ProfileVisibility string  `json:"profile_visibility"`
+			ShowPhone         bool    `json:"show_phone"`     // boolean
+			ShowEmail         bool    `json:"show_email"`     // boolean
+			AllowMessages     bool    `json:"allow_messages"` // boolean
+			ShowOnline        bool    `json:"show_online"`    // boolean
+			Verified          bool    `json:"verified"`
+			Role              string  `json:"role"`
+			CreatedAt         string  `json:"created_at"`
 		} `json:"user"`
 	}
 
 	if err := json.Unmarshal(body, &authResp); err != nil {
 		log.Printf("❌ Failed to parse auth response: %v", err)
+		log.Printf("❌ Response body: %s", string(body))
 		sendError(w, "Invalid auth response", http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("🔍 Received from Auth Service: last_name=%s, phone=%s, location=%s, bio=%s",
-		authResp.User.LastName, authResp.User.Phone, authResp.User.Location, authResp.User.Bio)
+	// Конвертируем *string в string (пустая строка если nil)
+	lastName := ""
+	if authResp.User.LastName != nil {
+		lastName = *authResp.User.LastName
+	}
+	bio := ""
+	if authResp.User.Bio != nil {
+		bio = *authResp.User.Bio
+	}
+	phone := ""
+	if authResp.User.Phone != nil {
+		phone = *authResp.User.Phone
+	}
+	location := ""
+	if authResp.User.Location != nil {
+		location = *authResp.User.Location
+	}
+	avatar := ""
+	if authResp.User.Avatar != nil {
+		avatar = *authResp.User.Avatar
+	}
+	coverPhoto := ""
+	if authResp.User.CoverPhoto != nil {
+		coverPhoto = *authResp.User.CoverPhoto
+	}
+
+	log.Printf("🔍 Received from Auth Service: last_name=%s, phone=%s, location=%s, bio=%s, avatar=%s",
+		lastName, phone, location, bio, avatar)
 
 	// Конвертируем boolean в string для совместимости с Main Service БД
 	showPhone := "nobody"
@@ -378,13 +499,13 @@ func MeHandler(w http.ResponseWriter, r *http.Request) {
 			"user": map[string]interface{}{
 				"id":                 authResp.User.ID,
 				"name":               authResp.User.Name,
-				"last_name":          authResp.User.LastName,
+				"last_name":          lastName,
 				"email":              authResp.User.Email,
-				"bio":                authResp.User.Bio,
-				"phone":              authResp.User.Phone,
-				"location":           authResp.User.Location,
-				"avatar":             authResp.User.Avatar,
-				"cover_photo":        authResp.User.CoverPhoto,
+				"bio":                bio,
+				"phone":              phone,
+				"location":           location,
+				"avatar":             avatar,
+				"cover_photo":        coverPhoto,
 				"profile_visibility": authResp.User.ProfileVisibility,
 				"show_phone":         showPhone,
 				"show_email":         showEmail,
@@ -504,6 +625,8 @@ func VerifyTokenHandler(w http.ResponseWriter, r *http.Request) {
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
+	log.Printf("📨 LoginHandler called: method=%s, path=%s", r.Method, r.URL.Path)
+
 	if r.Method != http.MethodPost {
 		sendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -511,20 +634,155 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req models.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("❌ Failed to decode request body: %v", err)
 		sendError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
+	log.Printf("📧 Login attempt for email: %s", req.Email)
+
 	if req.Email == "" || req.Password == "" {
+		log.Printf("❌ Empty email or password")
 		sendError(w, "Email и пароль обязательны", http.StatusBadRequest)
 		return
 	}
 
-	// 🔥 НОВОЕ: Используем Auth Service
+	// 🔥 DEV MODE: Работаем с локальной БД напрямую если AUTH_SERVICE_URL не установлен
 	authServiceURL := os.Getenv("AUTH_SERVICE_URL")
+	log.Printf("🔍 AUTH_SERVICE_URL = '%s'", authServiceURL)
+
 	if authServiceURL == "" {
-		authServiceURL = "http://localhost:7100"
+		// Локальный режим - проверяем пользователя в локальной БД
+		log.Printf("🔧 Dev mode: Using local database for login")
+		log.Printf("🔍 Attempting login for email: %s", req.Email)
+
+		var user models.User
+		var lastName, bio, phone, location, avatar, coverPhoto sql.NullString
+
+		query := ConvertPlaceholders(`SELECT id, name, last_name, email, password, bio, phone, location, avatar, cover_photo,
+			profile_visibility, show_phone, show_email, allow_messages, show_online, verified, created_at 
+			FROM users WHERE email = ?`)
+
+		err := db.DB.QueryRow(query, req.Email).Scan(
+			&user.ID, &user.Name, &lastName, &user.Email, &user.Password, &bio, &phone,
+			&location, &avatar, &coverPhoto,
+			&user.ProfileVisibility, &user.ShowPhone, &user.ShowEmail, &user.AllowMessages, &user.ShowOnline,
+			&user.Verified, &user.CreatedAt,
+		)
+
+		if err != nil {
+			log.Printf("❌ User not found in DB: %v", err)
+			sendError(w, "Неверный email или пароль", http.StatusUnauthorized)
+			return
+		}
+
+		log.Printf("✅ User found: id=%d, email=%s", user.ID, user.Email)
+		log.Printf("🔍 Password hash length: %d", len(user.Password))
+
+		// Проверяем пароль с использованием bcrypt
+		err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
+		if err != nil {
+			log.Printf("❌ Invalid password for user: %s, bcrypt error: %v", req.Email, err)
+			sendError(w, "Неверный email или пароль", http.StatusUnauthorized)
+			return
+		}
+
+		log.Printf("✅ Password verified successfully")
+
+		// Генерируем JWT токен
+		jwtSecret := os.Getenv("JWT_SECRET")
+		if jwtSecret == "" {
+			sendError(w, "Server configuration error", http.StatusInternalServerError)
+			return
+		}
+
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"user_id": user.ID,
+			"email":   user.Email,
+			"role":    "user",
+			"exp":     time.Now().Add(7 * 24 * time.Hour).Unix(),
+			"iat":     time.Now().Unix(),
+		})
+
+		tokenString, err := token.SignedString([]byte(jwtSecret))
+		if err != nil {
+			log.Printf("❌ Failed to generate token: %v", err)
+			sendError(w, "Failed to generate token", http.StatusInternalServerError)
+			return
+		}
+
+		// Конвертируем NULL значения
+		if lastName.Valid {
+			user.LastName = lastName.String
+		}
+		if bio.Valid {
+			user.Bio = bio.String
+		}
+		if phone.Valid {
+			user.Phone = phone.String
+		}
+		if location.Valid {
+			user.Location = location.String
+		}
+		if avatar.Valid {
+			user.Avatar = avatar.String
+		}
+		if coverPhoto.Valid {
+			user.CoverPhoto = coverPhoto.String
+		}
+
+		// Устанавливаем cookie
+		http.SetCookie(w, &http.Cookie{
+			Name:     "auth_token",
+			Value:    tokenString,
+			Path:     "/",
+			Domain:   "localhost",
+			HttpOnly: true,
+			Secure:   false,
+			SameSite: http.SameSiteLaxMode,
+			MaxAge:   86400 * 7, // 7 days
+		})
+
+		// Логируем вход
+		ipAddress := r.RemoteAddr
+		userAgent := r.Header.Get("User-Agent")
+		logSystemEvent("info", "auth", "login", "Пользователь вошел в систему (Local DB)", &user.ID, ipAddress)
+		CreateUserLog(db.DB, user.ID, "login", "Вход в систему (Local DB)", ipAddress, userAgent)
+
+		// Формируем ответ
+		response := map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"user": map[string]interface{}{
+					"id":                 user.ID,
+					"name":               user.Name,
+					"last_name":          user.LastName,
+					"email":              user.Email,
+					"bio":                user.Bio,
+					"phone":              user.Phone,
+					"location":           user.Location,
+					"avatar":             user.Avatar,
+					"cover_photo":        user.CoverPhoto,
+					"profile_visibility": user.ProfileVisibility,
+					"show_phone":         user.ShowPhone,
+					"show_email":         user.ShowEmail,
+					"allow_messages":     user.AllowMessages,
+					"show_online":        user.ShowOnline,
+					"verified":           user.Verified,
+					"created_at":         user.CreatedAt,
+				},
+				"token": tokenString,
+			},
+			"token": tokenString,
+		}
+
+		json.NewEncoder(w).Encode(response)
+		log.Printf("✅ User logged in via local DB: %s (id=%d)", user.Email, user.ID)
+		return
 	}
+
+	// PRODUCTION MODE: Используем Auth Service (Gateway)
+	log.Printf("🌐 Production mode: Using Auth Service at %s", authServiceURL)
 
 	// Отправляем запрос к Auth Service
 	jsonData, _ := json.Marshal(req)
