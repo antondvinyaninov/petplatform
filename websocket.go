@@ -12,8 +12,9 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		origin := r.Header.Get("Origin")
 		allowedOrigins := map[string]bool{
-			"http://localhost:3000":                                true,
-			"https://my-projects-gateway-zp.crv1ic.easypanel.host": true,
+			"http://localhost:3000":                                  true,
+			"https://my-projects-zooplatforma.crv1ic.easypanel.host": true,
+			"https://my-projects-gateway-zp.crv1ic.easypanel.host":   true,
 		}
 		return allowedOrigins[origin]
 	},
