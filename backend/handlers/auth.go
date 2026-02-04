@@ -539,7 +539,11 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	// Читаем ответ от Auth Service
 	body, _ := io.ReadAll(resp.Body)
 
+	log.Printf("🔍 Gateway response status: %d", resp.StatusCode)
+	log.Printf("🔍 Gateway response body: %s", string(body))
+
 	if resp.StatusCode != http.StatusOK {
+		log.Printf("❌ Gateway returned error: %s", string(body))
 		// Передаем ошибку от Auth Service
 		w.WriteHeader(resp.StatusCode)
 		w.Write(body)
