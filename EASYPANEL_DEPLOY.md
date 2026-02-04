@@ -19,8 +19,8 @@
 - **Source**: GitHub Repository
 - **Repository**: `antondvinyaninov/petplatform`
 - **Branch**: `main`
-- **Build Path**: `/backend`
-- **Dockerfile Path**: `/backend/Dockerfile`
+- **Build Path**: `/` (корень репозитория)
+- **Dockerfile Path**: `Dockerfile` (в корне)
 
 **Порты:**
 - **Container Port**: 8000

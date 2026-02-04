@@ -1,0 +1,53 @@
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+
+# Backend binaries
+backend/*.exe
+backend/*.dll
+backend/*.so
+backend/*.dylib
+backend/backend
+backend/server
+backend/test_build
+backend/test-build
+
+# Backend development files
+backend/.env
+backend/.env.local
+backend/.env.backup
+backend/*.backup*
+backend/*.bak*
+backend/*.broken
+backend/data.db
+backend/*.db
+backend/tmp/
+backend/uploads/
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.github/
+
+# Documentation
+*.md
+docs/
+
+# Scripts
+run
+run-simple
