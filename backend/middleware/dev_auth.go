@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"context"
 	"backend/db"
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -43,7 +43,12 @@ func DevAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			}
 		}
 
-		// 3. Если токена нет - 401
+		// 3. Если нет в cookie - проверяем query параметр (для WebSocket)
+		if tokenString == "" {
+			tokenString = r.URL.Query().Get("token")
+		}
+
+		// 4. Если токена нет - 401
 		if tokenString == "" {
 			log.Printf("⚠️ No token found (dev mode)")
 			w.Header().Set("Content-Type", "application/json")

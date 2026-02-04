@@ -148,12 +148,21 @@ func NotifyNewMessage(userID int, message interface{}) {
 // HandleWebSocket - обработчик WebSocket подключений
 func HandleWebSocket(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("🔌 WebSocket request received from %s", r.RemoteAddr)
+		log.Printf("🔌 WebSocket headers: X-User-ID=%s, Authorization=%s, token=%s",
+			r.Header.Get("X-User-ID"),
+			r.Header.Get("Authorization"),
+			r.URL.Query().Get("token"))
+
 		// Получаем userID из контекста (установлен middleware)
 		userID, ok := r.Context().Value("userID").(int)
 		if !ok || userID == 0 {
+			log.Printf("❌ WebSocket: No userID in context")
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
+
+		log.Printf("✅ WebSocket: userID=%d from context", userID)
 
 		// Upgrade HTTP connection to WebSocket
 		conn, err := upgrader.Upgrade(w, r, nil)
@@ -161,6 +170,8 @@ func HandleWebSocket(db *sql.DB) http.HandlerFunc {
 			log.Printf("❌ WebSocket upgrade error: %v", err)
 			return
 		}
+
+		log.Printf("✅ WebSocket upgraded successfully for user %d", userID)
 
 		// Создаем клиента
 		client := &Client{
