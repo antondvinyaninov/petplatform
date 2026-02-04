@@ -84,20 +84,19 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Парсим ответ
+	// Парсим ответ - Gateway возвращает {success: true, token: ..., user: {...}}
 	var authResp struct {
-		Success bool `json:"success"`
-		Data    struct {
-			Token string `json:"token"`
-			User  struct {
-				ID    int    `json:"id"`
-				Email string `json:"email"`
-				Name  string `json:"name"`
-			} `json:"user"`
-		} `json:"data"`
+		Success bool   `json:"success"`
+		Token   string `json:"token"`
+		User    struct {
+			ID    int    `json:"id"`
+			Email string `json:"email"`
+			Name  string `json:"name"`
+		} `json:"user"`
 	}
 
 	if err := json.Unmarshal(body, &authResp); err != nil {
+		log.Printf("❌ Failed to parse auth response: %v", err)
 		sendError(w, "Invalid auth response", http.StatusInternalServerError)
 		return
 	}
@@ -107,19 +106,19 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		INSERT INTO users (id, name, email, created_at)
 		VALUES (?, ?, ?, NOW())
 		ON CONFLICT (id) DO NOTHING
-	`), authResp.Data.User.ID, authResp.Data.User.Name, authResp.Data.User.Email)
+	`), authResp.User.ID, authResp.User.Name, authResp.User.Email)
 
 	if err != nil {
 		log.Printf("⚠️ Failed to sync user to main DB: %v", err)
 		// Не критично - продолжаем
 	} else {
-		log.Printf("✅ User synced to main DB: id=%d, email=%s", authResp.Data.User.ID, authResp.Data.User.Email)
+		log.Printf("✅ User synced to main DB: id=%d, email=%s", authResp.User.ID, authResp.User.Email)
 	}
 
 	// Устанавливаем cookie с токеном от Auth Service
 	http.SetCookie(w, &http.Cookie{
 		Name:     "auth_token",
-		Value:    authResp.Data.Token,
+		Value:    authResp.Token,
 		Path:     "/",
 		Domain:   "localhost", // ✅ Cookie работает для всех портов localhost
 		HttpOnly: true,
@@ -131,13 +130,13 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	// Логируем регистрацию
 	ipAddress := r.RemoteAddr
 	userAgent := r.Header.Get("User-Agent")
-	userID := authResp.Data.User.ID
+	userID := authResp.User.ID
 	CreateUserLog(db.DB, userID, "register", "Пользователь зарегистрировался через Auth Service", ipAddress, userAgent)
 
 	// Возвращаем ответ клиенту
 	w.Write(body)
 
-	log.Printf("✅ User registered via Auth Service: %s", authResp.Data.User.Email)
+	log.Printf("✅ User registered via Auth Service: %s", authResp.User.Email)
 }
 
 func MeHandler(w http.ResponseWriter, r *http.Request) {
@@ -528,20 +527,20 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Парсим ответ
+	// Парсим ответ - Gateway возвращает {success: true, token: ..., user: {...}}
 	var authResp struct {
-		Success bool `json:"success"`
-		Data    struct {
-			Token string `json:"token"`
-			User  struct {
-				ID    int    `json:"id"`
-				Email string `json:"email"`
-				Name  string `json:"name"`
-			} `json:"user"`
-		} `json:"data"`
+		Success bool   `json:"success"`
+		Token   string `json:"token"`
+		User    struct {
+			ID       int    `json:"id"`
+			Email    string `json:"email"`
+			Name     string `json:"name"`
+			LastName string `json:"last_name"`
+		} `json:"user"`
 	}
 
 	if err := json.Unmarshal(body, &authResp); err != nil {
+		log.Printf("❌ Failed to parse auth response: %v", err)
 		sendError(w, "Invalid auth response", http.StatusInternalServerError)
 		return
 	}
@@ -549,7 +548,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	// Устанавливаем cookie с токеном от Auth Service
 	http.SetCookie(w, &http.Cookie{
 		Name:     "auth_token",
-		Value:    authResp.Data.Token,
+		Value:    authResp.Token,
 		Path:     "/",
 		Domain:   "localhost", // ✅ Cookie работает для всех портов localhost
 		HttpOnly: true,
@@ -558,12 +557,12 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   86400 * 7,            // 7 days
 	})
 
-	log.Printf("🔍 LoginHandler: Cookie set for user %s", authResp.Data.User.Email)
+	log.Printf("🔍 LoginHandler: Cookie set for user %s", authResp.User.Email)
 
 	// Логируем успешный вход
 	ipAddress := r.RemoteAddr
 	userAgent := r.Header.Get("User-Agent")
-	userID := authResp.Data.User.ID
+	userID := authResp.User.ID
 
 	log.Printf("🔍 LoginHandler: Logging system event...")
 	logSystemEvent("info", "auth", "login", "Пользователь вошел в систему (Auth Service)", &userID, ipAddress)

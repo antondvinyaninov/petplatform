@@ -44,13 +44,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Простой запрос к Auth Service
         const response = await authApi.me();
         
-        if (mounted && response.success && response.data) {
-          const userData = response.data as any;
-          // Проверяем есть ли user.id в userData.user, если нет - берем userData напрямую
-          const user = (userData.user && userData.user.id) ? userData.user : userData;
+        if (mounted && response.success) {
+          // Gateway возвращает {success: true, user: {...}}
+          // Main Service возвращает {success: true, data: {user: {...}}}
+          const userData = (response as any).user || (response as any).data?.user || (response as any).data;
           
-          setUser(user);
-          setToken(storedToken);
+          if (userData && userData.id) {
+            setUser(userData);
+            setToken(storedToken);
+          } else {
+            // Нет данных пользователя - удаляем токен
+            localStorage.removeItem('auth_token');
+          }
         } else {
           // Токен невалидный - удаляем
           localStorage.removeItem('auth_token');
@@ -145,12 +150,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const authResponse = await authApi.me();
       console.log('📥 Auth response:', authResponse);
       
-      if (authResponse.success && authResponse.data) {
-        const userData = authResponse.data as any;
-        // Проверяем есть ли user.id в userData.user, если нет - берем userData напрямую
-        const user = (userData.user && userData.user.id) ? userData.user : userData;
-        console.log('✅ Setting user in context:', user);
-        setUser(user);
+      if (authResponse.success) {
+        // Gateway возвращает {success: true, user: {...}}
+        // Main Service возвращает {success: true, data: {user: {...}}}
+        const userData = (authResponse as any).user || (authResponse as any).data?.user || (authResponse as any).data;
+        
+        if (userData && userData.id) {
+          console.log('✅ Setting user in context:', userData);
+          setUser(userData);
+        }
       }
     } catch (error) {
       console.error('User refresh failed:', error);
