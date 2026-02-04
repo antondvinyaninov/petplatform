@@ -114,6 +114,7 @@ RUN echo '#!/bin/sh' > /app/start.sh && \
     echo '' >> /app/start.sh && \
     echo 'echo "Starting backend..."' >> /app/start.sh && \
     echo 'export PORT=8000' >> /app/start.sh && \
+    echo 'export ENVIRONMENT=production' >> /app/start.sh && \
     echo 'cd /app/backend && ./main &' >> /app/start.sh && \
     echo 'BACKEND_PID=$!' >> /app/start.sh && \
     echo 'echo "Backend started with PID $BACKEND_PID"' >> /app/start.sh && \
