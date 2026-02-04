@@ -7,8 +7,8 @@ WORKDIR /app/frontend
 ARG GIT_SHA
 RUN echo "Building from commit: ${GIT_SHA}"
 
-# Copy frontend package files
-COPY frontend/package*.json ./
+# Copy frontend package files (only package.json, not lock file)
+COPY frontend/package.json ./
 
 # Install dependencies using npm install (ignores corrupted lock file)
 RUN npm install --production=false
