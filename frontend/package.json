@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
-    "@pet/shared": "file:../../shared/pet-shared-0.0.1.tgz",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.562.0",
     "next": "^16.1.6",
