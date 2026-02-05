@@ -46,6 +46,11 @@ export default function PollDisplay({ poll: initialPoll, onVoteUpdate }: PollDis
 
   // ✅ Синхронизируем selectedOptions с poll.user_votes при обновлении
   useEffect(() => {
+    console.log('📊 PollDisplay: syncing user_votes', {
+      user_votes: poll.user_votes,
+      user_voted: poll.user_voted,
+      current_selected: selectedOptions
+    });
     if (poll.user_votes) {
       setSelectedOptions(poll.user_votes);
     }
@@ -53,6 +58,10 @@ export default function PollDisplay({ poll: initialPoll, onVoteUpdate }: PollDis
 
   // ✅ Обновляем poll когда приходит новый initialPoll (например, после обновления страницы)
   useEffect(() => {
+    console.log('📊 PollDisplay: updating poll from initialPoll', {
+      user_voted: initialPoll.user_voted,
+      user_votes: initialPoll.user_votes
+    });
     setPoll(initialPoll);
   }, [initialPoll]);
 
