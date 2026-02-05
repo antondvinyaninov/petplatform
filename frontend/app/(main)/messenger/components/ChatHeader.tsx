@@ -1,6 +1,7 @@
 'use client';
 
 import { User } from '../types';
+import { getMediaUrl } from '@/lib/utils';
 
 interface ChatHeaderProps {
   user: User | null;
@@ -44,7 +45,7 @@ export default function ChatHeader({ user, onClose }: ChatHeaderProps) {
         <div className="flex items-center gap-3">
           {user.avatar ? (
             <img
-              src={`http://localhost:8000${user.avatar}`}
+              src={getMediaUrl(user.avatar)}
               alt={user.name}
               className="w-10 h-10 rounded-full object-cover"
             />

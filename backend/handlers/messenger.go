@@ -141,17 +141,11 @@ func GetChatMessagesHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()
 
-		log.Printf("🔍 [DEBUG] GetChatMessagesHandler called: method=%s, path=%s", r.Method, r.URL.Path)
-		log.Printf("🔍 [DEBUG] Headers: X-User-ID=%s, X-User-Email=%s", r.Header.Get("X-User-ID"), r.Header.Get("X-User-Email"))
-
 		userID, ok := r.Context().Value("userID").(int)
 		if !ok || userID == 0 {
-			log.Printf("❌ [DEBUG] No userID in context! ok=%v, userID=%d", ok, userID)
 			http.Error(w, `{"success":false,"error":"Unauthorized"}`, http.StatusUnauthorized)
 			return
 		}
-
-		log.Printf("✅ [DEBUG] UserID from context: %d", userID)
 
 		// Получаем ID чата из URL
 		pathParts := strings.Split(r.URL.Path, "/")
@@ -179,7 +173,6 @@ func GetChatMessagesHandler(db *sql.DB) http.HandlerFunc {
 			ORDER BY m.created_at ASC
 		`)
 
-		log.Printf("🔍 [DEBUG] Executing query: chatID=%d, userID=%d", chatID, userID)
 		rows, err := db.Query(query, chatID, userID, userID)
 		if err != nil {
 			log.Printf("❌ Error fetching messages: %v", err)
