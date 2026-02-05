@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"backend/models"
 	"backend/db"
+	"backend/models"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -1142,6 +1142,10 @@ func getPostByID(postID int, userID int) (models.Post, error) {
 	poll, err := loadPollForPost(postID, userID)
 	if err == nil {
 		post.Poll = poll
+		post.HasPoll = true
+		log.Printf("✅ getPostByID: Post %d has poll (id=%d)", postID, poll.ID)
+	} else {
+		post.HasPoll = false
 	}
 
 	return post, nil

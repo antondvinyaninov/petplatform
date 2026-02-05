@@ -1,4 +1,1 @@
-DEPLOY_TIMESTAMP=1738800456
-# Этот файл используется для триггера пересборки в Easypanel
-# Изменение этого файла заставит Easypanel пересобрать контейнер
-# Last update: Fixed hardcoded localhost:8000 in PostCard delete function
+1770297097

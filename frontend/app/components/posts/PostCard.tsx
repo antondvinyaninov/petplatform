@@ -153,11 +153,20 @@ export default function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
     }
   }, [searchParams, post.id]);
 
+  // ✅ Обновляем poll если он пришел с сервера
+  useEffect(() => {
+    if (post.poll && !poll) {
+      setPoll(post.poll);
+      setPollLoaded(true);
+    }
+  }, [post.poll]);
+
   // ✅ Ленивая загрузка опроса при появлении поста на экране
   useEffect(() => {
-    console.log(`📊 Post ${post.id}: has_poll=${post.has_poll}, pollLoaded=${pollLoaded}`);
+    console.log(`📊 Post ${post.id}: has_poll=${post.has_poll}, poll=${!!poll}, pollLoaded=${pollLoaded}`);
     
-    if (pollLoaded || !post.has_poll) return; // Уже загружен или опроса нет
+    // Если опрос уже есть или уже загружен - не загружаем
+    if (poll || pollLoaded || !post.has_poll) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -181,7 +190,7 @@ export default function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
         observer.unobserve(element);
       }
     };
-  }, [post.id, post.has_poll, pollLoaded, pollLoading]);
+  }, [post.id, post.has_poll, poll, pollLoaded, pollLoading]);
 
   const loadPoll = async () => {
     try {
