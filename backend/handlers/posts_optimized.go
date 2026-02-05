@@ -1,8 +1,9 @@
 package handlers
 
 import (
-	"backend/models"
 	"backend/db"
+	"backend/models"
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -223,6 +224,207 @@ func loadPetsForPostsBatch(posts []models.Post) []models.Post {
 			}
 			posts[i].Pets = pets
 		}
+	}
+
+	return posts
+}
+
+// loadPostsOptimized - универсальная функция для загрузки постов с оптимизацией
+// Параметры filters:
+// - "author_id" (int) - фильтр по автору
+// - "author_type" (string) - "user" или "organization"
+// - "pet_id" (int) - фильтр по питомцу
+// - "filter" (string) - "for-you", "following", "city"
+// - "limit" (int) - количество постов
+// - "offset" (int) - смещение для пагинации
+func loadPostsOptimized(currentUserID int, filters map[string]interface{}) []models.Post {
+	// Базовый запрос с JOIN для получения всех данных за один раз
+	query := `
+		SELECT p.id, p.author_id, p.author_type, p.content, p.attached_pets, 
+		       p.attachments, p.tags, p.status, p.scheduled_at, p.created_at, p.updated_at,
+		       p.location_lat, p.location_lon, p.location_name,
+		       o.name as org_name, o.short_name as org_short_name, o.logo as org_logo,
+		       u.name as user_name, u.last_name as user_last_name, u.avatar as user_avatar,
+		       p.likes_count, p.comments_count,
+		       CASE 
+		           WHEN p.author_type = 'user' AND EXISTS (
+		               SELECT 1 FROM friendships f 
+		               WHERE ((f.user_id = ? AND f.friend_id = p.author_id) 
+		                   OR (f.friend_id = ? AND f.user_id = p.author_id))
+		                   AND f.status = 'accepted'
+		           ) THEN 1
+		           ELSE 0
+		       END as is_friend,
+		       EXISTS (SELECT 1 FROM polls WHERE post_id = p.id) as has_poll
+		FROM posts p
+		LEFT JOIN organizations o ON p.author_id = o.id AND p.author_type = 'organization'
+		LEFT JOIN users u ON p.author_id = u.id AND p.author_type = 'user'
+		WHERE p.is_deleted = FALSE AND p.status = 'published'
+	`
+
+	args := []interface{}{currentUserID, currentUserID}
+
+	// Применяем фильтры
+	if authorID, ok := filters["author_id"].(int); ok {
+		query += " AND p.author_id = ?"
+		args = append(args, authorID)
+	}
+
+	if authorType, ok := filters["author_type"].(string); ok {
+		query += " AND p.author_type = ?"
+		args = append(args, authorType)
+	}
+
+	if petID, ok := filters["pet_id"].(int); ok {
+		query += " AND EXISTS (SELECT 1 FROM post_pets pp WHERE pp.post_id = p.id AND pp.pet_id = ?)"
+		args = append(args, petID)
+	}
+
+	if filter, ok := filters["filter"].(string); ok {
+		switch filter {
+		case "following":
+			if currentUserID > 0 {
+				query += ` AND p.author_type = 'user' AND p.author_id != ? AND EXISTS (
+					SELECT 1 FROM friendships f 
+					WHERE ((f.user_id = ? AND f.friend_id = p.author_id) 
+						OR (f.friend_id = ? AND f.user_id = p.author_id))
+						AND f.status = 'accepted'
+				)`
+				args = append(args, currentUserID, currentUserID, currentUserID)
+			}
+		case "city":
+			if currentUserID > 0 {
+				var userCity string
+				db.DB.QueryRow(ConvertPlaceholders("SELECT location FROM users WHERE id = ?"), currentUserID).Scan(&userCity)
+				if userCity != "" {
+					query += ` AND (
+						(p.author_type = 'user' AND u.location = ?) OR
+						(p.author_type = 'organization' AND o.address_city = ?)
+					)`
+					args = append(args, userCity, userCity)
+				}
+			}
+		}
+	}
+
+	// Сортировка
+	query += " ORDER BY is_friend DESC, p.created_at DESC"
+
+	// Пагинация
+	limit := 20
+	if l, ok := filters["limit"].(int); ok && l > 0 && l <= 100 {
+		limit = l
+	}
+	query += " LIMIT ?"
+	args = append(args, limit)
+
+	if offset, ok := filters["offset"].(int); ok && offset > 0 {
+		query += " OFFSET ?"
+		args = append(args, offset)
+	}
+
+	// Конвертируем плейсхолдеры
+	query = ConvertPlaceholders(query)
+
+	// Выполняем запрос
+	rows, err := db.DB.Query(query, args...)
+	if err != nil {
+		return []models.Post{}
+	}
+	defer rows.Close()
+
+	var posts []models.Post
+	for rows.Next() {
+		var post models.Post
+		var attachedPetsJSON, attachmentsJSON, tagsJSON string
+		var orgName, orgShortName, orgLogo *string
+		var userName, userLastName, userAvatar *string
+		var isFriend int
+		var hasPoll bool
+
+		err := rows.Scan(
+			&post.ID, &post.AuthorID, &post.AuthorType, &post.Content,
+			&attachedPetsJSON, &attachmentsJSON, &tagsJSON,
+			&post.Status, &post.ScheduledAt,
+			&post.CreatedAt, &post.UpdatedAt,
+			&post.LocationLat, &post.LocationLon, &post.LocationName,
+			&orgName, &orgShortName, &orgLogo,
+			&userName, &userLastName, &userAvatar,
+			&post.LikesCount, &post.CommentsCount,
+			&isFriend,
+			&hasPoll,
+		)
+		if err != nil {
+			continue
+		}
+
+		post.HasPoll = hasPoll
+
+		// Десериализуем JSON массивы
+		json.Unmarshal([]byte(attachedPetsJSON), &post.AttachedPets)
+		json.Unmarshal([]byte(attachmentsJSON), &post.Attachments)
+		json.Unmarshal([]byte(tagsJSON), &post.Tags)
+
+		// Инициализируем пустые массивы если nil
+		if post.AttachedPets == nil {
+			post.AttachedPets = []int{}
+		}
+		if post.Attachments == nil {
+			post.Attachments = []models.Attachment{}
+		}
+		if post.Tags == nil {
+			post.Tags = []string{}
+		}
+
+		// Добавляем данные организации
+		if post.AuthorType == "organization" && orgName != nil {
+			org := models.Organization{
+				ID:        post.AuthorID,
+				Name:      *orgName,
+				ShortName: orgShortName,
+				Logo:      orgLogo,
+			}
+			post.Organization = &org
+		}
+
+		// Добавляем данные пользователя
+		if post.AuthorType == "user" && userName != nil {
+			user := models.User{
+				ID:   post.AuthorID,
+				Name: *userName,
+			}
+			if userLastName != nil {
+				user.LastName = *userLastName
+			}
+			if userAvatar != nil {
+				user.Avatar = *userAvatar
+			}
+			post.User = &user
+		}
+
+		posts = append(posts, post)
+	}
+
+	if len(posts) == 0 {
+		return []models.Post{}
+	}
+
+	// Batch-загрузка питомцев
+	posts = loadPetsForPostsBatch(posts)
+
+	// Batch-загрузка опросов для постов с has_poll=true
+	for i := range posts {
+		if posts[i].HasPoll {
+			poll, err := loadPollForPost(posts[i].ID, currentUserID)
+			if err == nil {
+				posts[i].Poll = poll
+			}
+		}
+	}
+
+	// Проверяем права на редактирование
+	for i := range posts {
+		posts[i].CanEdit = checkCanEditPost(currentUserID, &posts[i])
 	}
 
 	return posts

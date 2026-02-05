@@ -10,11 +10,7 @@ export function useUnreadMessages() {
   // Подключаемся к WebSocket для real-time обновлений
   const { isConnected } = useWebSocket({
     onUnreadCount: (count: number) => {
-      console.log('🔔 Unread count updated via WebSocket:', count);
       setUnreadCount(count);
-    },
-    onConnect: () => {
-      console.log('✅ WebSocket connected, unread count will be sent automatically');
     },
   });
 
@@ -29,6 +25,13 @@ export function useUnreadMessages() {
     if (!isConnected) {
       const fetchUnreadCount = async () => {
         try {
+          // Проверяем наличие токена перед запросом
+          const token = localStorage.getItem('auth_token');
+          if (!token) {
+            setUnreadCount(0);
+            return;
+          }
+
           const response = await apiClient.get<{ count: number }>('/api/messages/unread');
 
           if (response.success && response.data) {
@@ -37,6 +40,7 @@ export function useUnreadMessages() {
             setUnreadCount(0);
           }
         } catch (error) {
+          console.log('❌ Fetch error for /api/messages/unread:', error);
           // Тихо игнорируем ошибки сети - не критично для UI
           setUnreadCount(0);
         }

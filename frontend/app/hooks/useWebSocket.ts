@@ -67,10 +67,15 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   }, [user?.id]); // ✅ Зависим только от user.id, а не от всего объекта user
 
   const connect = () => {
+    // Проверяем что компонент смонтирован
+    if (!isMountedRef.current) {
+      return;
+    }
+
     // Получаем токен из localStorage
     const token = localStorage.getItem('auth_token');
     if (!token) {
-      console.error('❌ No token found, cannot connect to WebSocket');
+      // Нет токена - не пытаемся подключиться
       return;
     }
 
@@ -112,15 +117,15 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
               // Unknown message type - ignore
           }
         } catch (error) {
-          console.error('❌ Error parsing WebSocket message:', error);
+          // Игнорируем ошибки парсинга - не критично
         }
       };
 
       ws.onerror = (error) => {
-        console.error('❌ WebSocket error:', error);
+        // Не логируем ошибки - они не критичны и будет reconnect
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
         // Обновляем состояние только если компонент смонтирован
         if (isMountedRef.current) {
           setIsConnected(false);
@@ -128,23 +133,27 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         wsRef.current = null;
         options.onDisconnect?.();
 
-        // Пытаемся переподключиться только если компонент смонтирован
-        if (reconnectAttemptsRef.current < maxReconnectAttempts && isMountedRef.current) {
+        // Не переподключаемся если:
+        // 1. Компонент размонтирован
+        // 2. Закрытие было нормальным (код 1000)
+        // 3. Достигнут лимит попыток
+        const isNormalClosure = event.code === 1000;
+        const shouldReconnect = 
+          isMountedRef.current && 
+          !isNormalClosure && 
+          reconnectAttemptsRef.current < maxReconnectAttempts;
+
+        if (shouldReconnect) {
           const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-          console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`);
           
           reconnectTimeoutRef.current = setTimeout(() => {
             reconnectAttemptsRef.current++;
             connect();
           }, delay);
-        } else if (!isMountedRef.current) {
-          // Component unmounted, skipping reconnect
-        } else {
-          console.error('❌ WebSocket: Max reconnect attempts reached');
         }
       };
     } catch (error) {
-      console.error('❌ Error creating WebSocket:', error);
+      // Игнорируем ошибки создания WebSocket
     }
   };
 

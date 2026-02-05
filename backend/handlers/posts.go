@@ -452,265 +452,60 @@ func DraftsHandler(w http.ResponseWriter, r *http.Request) {
 
 // getUserPosts получает посты конкретного пользователя (Wall)
 func getUserPosts(w http.ResponseWriter, r *http.Request, userID int) {
-	log.Printf("🔍 getUserPosts: Starting for userID=%d", userID)
+	currentUserID, _ := GetUserIDFromGateway(r)
 
-	// Получаем текущего пользователя из контекста
-	currentUserID, _ := r.Context().Value("userID").(int)
-	log.Printf("🔍 getUserPosts: currentUserID=%d", currentUserID)
-
-	// Простой запрос только ID постов (без JOIN)
-	log.Printf("🔍 getUserPosts: Fetching post IDs...")
-
-	// Получаем параметры пагинации из query
+	// Получаем параметры пагинации
 	limitStr := r.URL.Query().Get("limit")
 	offsetStr := r.URL.Query().Get("offset")
 
-	limit := 20 // По умолчанию 20 постов
+	limit := 20
 	if limitStr != "" {
 		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 && parsedLimit <= 50 {
 			limit = parsedLimit
 		}
 	}
 
-	offset := 0 // По умолчанию с начала
+	offset := 0
 	if offsetStr != "" {
 		if parsedOffset, err := strconv.Atoi(offsetStr); err == nil && parsedOffset >= 0 {
 			offset = parsedOffset
 		}
 	}
 
-	log.Printf("🔍 getUserPosts: Pagination - limit=%d, offset=%d", limit, offset)
+	// Используем универсальную функцию загрузки постов
+	posts := loadPostsOptimized(currentUserID, map[string]interface{}{
+		"author_id":   userID,
+		"author_type": "user",
+		"limit":       limit,
+		"offset":      offset,
+	})
 
-	simpleQuery := `SELECT id FROM posts WHERE author_id = ? AND author_type = 'user' AND is_deleted = FALSE ORDER BY created_at DESC LIMIT ? OFFSET ?`
-	rows, err := db.DB.Query(ConvertPlaceholders(simpleQuery), userID, limit, offset)
-	if err != nil {
-		log.Printf("❌ getUserPosts: Query error: %v", err)
-		sendErrorResponse(w, "Ошибка получения постов: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer rows.Close()
-
-	var postIDs []int
-	for rows.Next() {
-		var id int
-		if err := rows.Scan(&id); err != nil {
-			log.Printf("❌ getUserPosts: Scan error: %v", err)
-			continue
-		}
-		postIDs = append(postIDs, id)
-	}
-	log.Printf("✅ getUserPosts: Found %d post IDs", len(postIDs))
-
-	// Загружаем полные данные для каждого поста отдельным запросом
-	var posts []models.Post
-	for _, postID := range postIDs {
-		// Простой запрос без JOIN + проверка наличия опроса
-		query := `
-			SELECT p.id, p.author_id, p.author_type, p.content, p.attached_pets, 
-			       p.attachments, p.tags, p.status, p.scheduled_at, p.created_at, p.updated_at,
-			       p.location_lat, p.location_lon, p.location_name,
-			       EXISTS (SELECT 1 FROM polls WHERE polls.post_id = p.id) as has_poll
-			FROM posts p
-			WHERE p.id = ?
-		`
-		var post models.Post
-		var attachedPetsJSON, attachmentsJSON, tagsJSON sql.NullString
-		var scheduledAt sql.NullTime
-		var hasPoll bool
-
-		err := db.DB.QueryRow(ConvertPlaceholders(query), postID).Scan(
-			&post.ID, &post.AuthorID, &post.AuthorType, &post.Content,
-			&attachedPetsJSON, &attachmentsJSON, &tagsJSON,
-			&post.Status, &scheduledAt, &post.CreatedAt, &post.UpdatedAt,
-			&post.LocationLat, &post.LocationLon, &post.LocationName,
-			&hasPoll,
-		)
-
-		if err != nil {
-			log.Printf("⚠️ getUserPosts: Failed to load post %d: %v", postID, err)
-			continue
-		}
-
-		post.HasPoll = hasPoll
-		log.Printf("📊 getUserPosts: Post %d has_poll=%v", postID, hasPoll)
-
-		// Парсим JSON поля
-		if attachedPetsJSON.Valid && attachedPetsJSON.String != "" && attachedPetsJSON.String != "null" {
-			json.Unmarshal([]byte(attachedPetsJSON.String), &post.AttachedPets)
-		}
-		if post.AttachedPets == nil {
-			post.AttachedPets = []int{}
-		}
-
-		if attachmentsJSON.Valid && attachmentsJSON.String != "" && attachmentsJSON.String != "null" {
-			json.Unmarshal([]byte(attachmentsJSON.String), &post.Attachments)
-		}
-		if post.Attachments == nil {
-			post.Attachments = []models.Attachment{}
-		}
-
-		if tagsJSON.Valid && tagsJSON.String != "" && tagsJSON.String != "null" {
-			json.Unmarshal([]byte(tagsJSON.String), &post.Tags)
-		}
-		if post.Tags == nil {
-			post.Tags = []string{}
-		}
-
-		if scheduledAt.Valid {
-			timeStr := scheduledAt.Time.Format(time.RFC3339)
-			post.ScheduledAt = &timeStr
-		}
-
-		// Загружаем данные пользователя
-		var user models.User
-		var lastName, avatar sql.NullString
-		userQuery := ConvertPlaceholders("SELECT id, name, last_name, email, avatar FROM users WHERE id = ?")
-		err = db.DB.QueryRow(userQuery, post.AuthorID).Scan(&user.ID, &user.Name, &lastName, &user.Email, &avatar)
-		if err == nil {
-			if lastName.Valid {
-				user.LastName = lastName.String
-			}
-			if avatar.Valid {
-				user.Avatar = avatar.String
-			}
-			post.User = &user
-		} else {
-			log.Printf("⚠️ getUserPosts: Failed to load user %d: %v", post.AuthorID, err)
-			post.User = nil
-		}
-
-		post.Organization = nil
-		post.Pets = []models.Pet{}
-		post.CommentsCount = 0
-
-		posts = append(posts, post)
-	}
-	log.Printf("✅ getUserPosts: Loaded %d posts", len(posts))
-
-	if posts == nil {
-		posts = []models.Post{}
-	}
-
-	// Загружаем опросы для постов с has_poll=true
-	log.Printf("🔍 getUserPosts: Loading polls for posts with has_poll=true...")
-	for i := range posts {
-		if posts[i].HasPoll {
-			poll, err := loadPollForPost(posts[i].ID, currentUserID)
-			if err == nil {
-				posts[i].Poll = poll
-				log.Printf("✅ Loaded poll for post %d", posts[i].ID)
-			} else {
-				log.Printf("⚠️ Failed to load poll for post %d: %v", posts[i].ID, err)
-			}
-		}
-	}
-
-	// Проверяем права на редактирование для каждого поста
-	log.Printf("🔍 getUserPosts: Checking edit permissions...")
-	for i := range posts {
-		posts[i].CanEdit = checkCanEditPost(currentUserID, &posts[i])
-	}
-	log.Printf("✅ getUserPosts: Edit permissions checked")
-
-	log.Printf("✅ getUserPosts: Sending response with %d posts", len(posts))
 	sendSuccessResponse(w, posts)
 }
 
 // getPetPosts получает посты, в которых упоминается питомец
 func getPetPosts(w http.ResponseWriter, r *http.Request, petID int) {
-	// Получаем текущего пользователя из контекста
-	currentUserID, _ := r.Context().Value("userID").(int)
+	currentUserID, _ := GetUserIDFromGateway(r)
 
-	query := `
-		SELECT p.id, p.author_id, p.author_type, p.content, p.attached_pets, 
-		       p.attachments, p.tags, p.status, p.scheduled_at, p.created_at, p.updated_at,
-		       u.name, u.email, u.avatar,
-		       o.name as org_name, o.short_name as org_short_name, o.logo as org_logo,
-		       p.likes_count, p.comments_count
-		FROM posts p
-		LEFT JOIN users u ON p.author_id = u.id AND p.author_type = 'user'
-		LEFT JOIN organizations o ON p.author_id = o.id AND p.author_type = 'organization'
-		INNER JOIN post_pets pp ON p.id = pp.post_id
-		WHERE pp.pet_id = ? AND p.is_deleted = FALSE AND p.status = 'published'
-		ORDER BY p.created_at DESC
-	`
-
-	rows, err := db.DB.Query(query, petID)
-	if err != nil {
-		sendErrorResponse(w, "Ошибка получения постов: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer rows.Close()
-
-	var posts []models.Post
-	for rows.Next() {
-		post, err := scanPost(rows)
-		if err != nil {
-			sendErrorResponse(w, "Ошибка чтения данных: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-		posts = append(posts, post)
-	}
-
-	if posts == nil {
-		posts = []models.Post{}
-	}
-
-	// Опросы загружаются по требованию (lazy loading) для getPetPosts
-
-	// ✅ Проверяем права на редактирование для каждого поста
-	for i := range posts {
-		posts[i].CanEdit = checkCanEditPost(currentUserID, &posts[i])
-	}
+	// Используем универсальную функцию загрузки постов
+	posts := loadPostsOptimized(currentUserID, map[string]interface{}{
+		"pet_id": petID,
+		"limit":  50,
+	})
 
 	sendSuccessResponse(w, posts)
 }
 
 // getOrganizationPosts получает посты организации
 func getOrganizationPosts(w http.ResponseWriter, r *http.Request, orgID int) {
-	// Получаем текущего пользователя из контекста
-	currentUserID, _ := r.Context().Value("userID").(int)
+	currentUserID, _ := GetUserIDFromGateway(r)
 
-	query := ConvertPlaceholders(`
-		SELECT p.id, p.author_id, p.author_type, p.content, p.attached_pets, 
-		       p.attachments, p.tags, p.status, p.scheduled_at, p.created_at, p.updated_at,
-		       u.name, u.email, u.avatar,
-		       o.name as org_name, o.short_name as org_short_name, o.logo as org_logo,
-		       p.likes_count, p.comments_count
-		FROM posts p
-		LEFT JOIN users u ON p.author_id = u.id AND p.author_type = 'user'
-		LEFT JOIN organizations o ON p.author_id = o.id AND p.author_type = 'organization'
-		WHERE p.author_id = ? AND p.author_type = 'organization' AND p.is_deleted = FALSE AND p.status = 'published'
-		ORDER BY p.created_at DESC
-	`)
-
-	rows, err := db.DB.Query(query, orgID)
-	if err != nil {
-		sendErrorResponse(w, "Ошибка получения постов: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer rows.Close()
-
-	var posts []models.Post
-	for rows.Next() {
-		post, err := scanPost(rows)
-		if err != nil {
-			sendErrorResponse(w, "Ошибка чтения данных: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-		posts = append(posts, post)
-	}
-
-	if posts == nil {
-		posts = []models.Post{}
-	}
-
-	// Опросы загружаются по требованию (lazy loading) для getOrganizationPosts
-
-	// ✅ Проверяем права на редактирование для каждого поста
-	for i := range posts {
-		posts[i].CanEdit = checkCanEditPost(currentUserID, &posts[i])
-	}
+	// Используем универсальную функцию загрузки постов
+	posts := loadPostsOptimized(currentUserID, map[string]interface{}{
+		"author_id":   orgID,
+		"author_type": "organization",
+		"limit":       50,
+	})
 
 	sendSuccessResponse(w, posts)
 }
