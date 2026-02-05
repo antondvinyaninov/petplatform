@@ -186,7 +186,12 @@ export default function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
   const loadPoll = async () => {
     try {
       setPollLoading(true);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/polls/post/${post.id}`, {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 
+        (typeof window !== 'undefined' && window.location.hostname.includes('easypanel.host')
+          ? 'https://my-projects-gateway-zp.crv1ic.easypanel.host'
+          : 'http://localhost:8000');
+      
+      const response = await fetch(`${API_URL}/api/polls/post/${post.id}`, {
         credentials: 'include',
       });
 

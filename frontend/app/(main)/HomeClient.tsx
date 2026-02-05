@@ -20,7 +20,7 @@ export default function HomeClient({ searchParams }: Props) {
     <div className="flex gap-4">
       {/* Main Feed - оптимальная ширина */}
       <div className="w-full xl:w-[600px] xl:flex-shrink-0">
-        <PostsFeed activeFilter={activeFilter} />
+        <PostsFeed activeFilter={activeFilter} initialPostId={searchParams.metka ? parseInt(searchParams.metka) : undefined} />
       </div>
 
       {/* Right Panel - только для авторизованных */}

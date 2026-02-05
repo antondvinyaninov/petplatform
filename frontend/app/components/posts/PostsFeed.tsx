@@ -25,12 +25,14 @@ interface Post {
 
 interface PostsFeedProps {
   activeFilter?: 'for-you' | 'following' | 'city' | 'lost' | 'found' | 'looking-for-home';
+  initialPostId?: number; // ✅ ID поста для открытия модального окна
 }
 
-export default function PostsFeed({ activeFilter = 'for-you' }: PostsFeedProps) {
+export default function PostsFeed({ activeFilter = 'for-you', initialPostId }: PostsFeedProps) {
   const { isAuthenticated, isLoading } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPostId, setSelectedPostId] = useState<number | null>(initialPostId || null);
 
   const loadPosts = async () => {
     try {
