@@ -63,6 +63,7 @@ func SetupRouter() *mux.Router {
 	apiRouter.PathPrefix("/favorites").HandlerFunc(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/friends").HandlerFunc(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/notifications").HandlerFunc(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/chats").HandlerFunc(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/messages").HandlerFunc(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/announcements").HandlerFunc(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/polls").HandlerFunc(ProxyHandler(mainService))

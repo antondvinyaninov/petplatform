@@ -68,7 +68,8 @@ Gateway будет доступен на `http://localhost:80`
 - `/api/favorites/*` → Main Backend
 - `/api/friends/*` → Main Backend
 - `/api/notifications/*` → Main Backend
-- `/api/messages/*` → Main Backend
+- `/api/chats/*` → Main Backend (мессенджер)
+- `/api/messages/*` → Main Backend (мессенджер)
 - `/api/announcements/*` → Main Backend
 - `/api/polls/*` → Main Backend
 - `/api/reports/*` → Main Backend
