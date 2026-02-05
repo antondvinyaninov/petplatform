@@ -45,12 +45,12 @@ export default function CityDetector() {
           const data = await res.json();
           const detectedCity = data.location?.data?.city || data.location?.data?.settlement;
           if (detectedCity) {
-            // ✅ Не сохраняем автоматически, а показываем как подсказку
+            // ✅ Сохраняем автоматически определенный город
             setCity(detectedCity);
-            setSearchQuery(detectedCity); // Подставляем в поиск
+            localStorage.setItem('userCity', detectedCity);
+            setSearchQuery(detectedCity);
             setLoading(false);
-            // ✅ Показываем модалку для подтверждения
-            setShowModal(true);
+            // ❌ НЕ показываем модалку автоматически
             return;
           }
         }
@@ -64,12 +64,12 @@ export default function CityDetector() {
         if (res.ok) {
           const data = await res.json();
           if (data.city) {
-            // ✅ Не сохраняем автоматически, а показываем как подсказку
+            // ✅ Сохраняем автоматически определенный город
             setCity(data.city);
-            setSearchQuery(data.city); // Подставляем в поиск
+            localStorage.setItem('userCity', data.city);
+            setSearchQuery(data.city);
             setLoading(false);
-            // ✅ Показываем модалку для подтверждения
-            setShowModal(true);
+            // ❌ НЕ показываем модалку автоматически
             return;
           }
         }
@@ -77,10 +77,10 @@ export default function CityDetector() {
         console.log('ip-api.com failed');
       }
 
-      // ✅ Если не удалось определить - показываем модалку
+      // ✅ Если не удалось определить - ставим дефолтный город
       setCity('Выберите город');
       setLoading(false);
-      setShowModal(true);
+      // ❌ НЕ показываем модалку автоматически
     };
 
     detectCity();
