@@ -6,10 +6,7 @@ import type {
   AnnouncementType,
 } from '../types/announcement';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 
-  (typeof window !== 'undefined' && process.env.NODE_ENV === 'production'
-    ? '' // Пустая строка = относительные пути (/api/...)
-    : 'http://localhost:8000');
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // Получить список объявлений
 export async function getAnnouncements(filters?: {

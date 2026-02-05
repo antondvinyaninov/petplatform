@@ -1,9 +1,6 @@
 // Утилиты для работы с медиа и пользователями
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 
-  (typeof window !== 'undefined' && process.env.NODE_ENV === 'production'
-    ? '' // Пустая строка = относительные пути (/api/...)
-    : 'http://localhost:8000');
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 /**
  * Получить полный URL для медиа файла
