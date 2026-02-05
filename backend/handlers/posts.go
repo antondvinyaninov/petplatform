@@ -368,10 +368,18 @@ func getAllPosts(w http.ResponseWriter, r *http.Request) {
 	// ✅ ОПТИМИЗАЦИЯ: Загружаем питомцев одним запросом для всех постов
 	posts = loadPetsForPostsBatch(posts)
 
-	// ✅ ОПТИМИЗАЦИЯ: Опросы загружаются по требованию (lazy loading)
-	// Frontend будет запрашивать опросы отдельно через GET /api/polls/:post_id
-	// Это позволяет масштабироваться до миллионов постов
-	// Опросы загружаются только для видимых постов на экране
+	// ✅ Загружаем опросы для постов с has_poll=true
+	for i := range posts {
+		if posts[i].HasPoll {
+			poll, err := loadPollForPost(posts[i].ID, userID)
+			if err == nil {
+				posts[i].Poll = poll
+				log.Printf("✅ Loaded poll for post %d", posts[i].ID)
+			} else {
+				log.Printf("⚠️ Failed to load poll for post %d: %v", posts[i].ID, err)
+			}
+		}
+	}
 
 	// ✅ Проверяем права на редактирование для каждого поста
 	for i := range posts {

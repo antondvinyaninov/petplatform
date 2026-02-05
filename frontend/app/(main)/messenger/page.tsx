@@ -140,6 +140,20 @@ export default function MessengerPage() {
       
       if (response.success && response.data) {
         setMessages(response.data);
+        
+        // Помечаем сообщения как прочитанные (если есть непрочитанные)
+        const unreadMessages = response.data.filter((msg: Message) => 
+          !msg.is_read && msg.sender_id !== user?.id
+        );
+        
+        if (unreadMessages.length > 0) {
+          console.log(`📖 Marking ${unreadMessages.length} messages as read in chat ${chatId}`);
+          // Отправляем запрос на бэкенд для пометки как прочитанные
+          // Бэкенд должен обновить счетчик и отправить через WebSocket
+          apiClient.post(`/api/chats/${chatId}/mark-read`, {}).catch(err => {
+            console.error('Failed to mark messages as read:', err);
+          });
+        }
       } else {
         console.error('Failed to fetch messages');
         setMessages([]);

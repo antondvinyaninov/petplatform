@@ -12,7 +12,8 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   if (metkaId) {
     try {
       // Получаем данные поста для SEO
-      const response = await fetch(`/api/posts/${metkaId}`, {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_URL}/api/posts/${metkaId}`, {
         cache: 'no-store',
       });
 

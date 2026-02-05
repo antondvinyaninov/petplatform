@@ -123,7 +123,11 @@ export default function PostModal({ post, isOpen, onClose, onCountChange }: Post
         document.body.style.position = '';
         document.body.style.top = '';
         document.body.style.width = '';
-        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+        const scrollPosition = parseInt(scrollY || '0') * -1;
+        // Не прокручиваем если позиция 0 или отрицательная
+        if (scrollPosition > 0) {
+          window.scrollTo(0, scrollPosition);
+        }
       }
     };
   }, [isOpen, onClose]);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useLayoutEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, memo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -120,12 +120,24 @@ interface PostCardProps {
   onUpdate?: (postId: number) => void;
 }
 
-export default function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
+function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showMenu, setShowMenu] = useState(false);
   const [scrollPosition, setScrollPosition] = useState(0);
+
+  // Перехватываем window.scrollTo для отладки
+  useEffect(() => {
+    const originalScrollTo = window.scrollTo;
+    window.scrollTo = function(...args) {
+      console.trace(`🚨 window.scrollTo called:`, args);
+      return originalScrollTo.apply(this, args);
+    };
+    return () => {
+      window.scrollTo = originalScrollTo;
+    };
+  }, []);
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [commentsCount, setCommentsCount] = useState(post.comments_count);
@@ -142,6 +154,13 @@ export default function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
   const [pollLoading, setPollLoading] = useState(false);
   const [pollLoaded, setPollLoaded] = useState(!!post.poll);
 
+  console.log(`🔍 PostCard ${post.id} init:`, {
+    has_poll: post.has_poll,
+    poll_from_props: !!post.poll,
+    poll_state: !!poll,
+    pollLoaded
+  });
+
   // ✅ Используем can_edit из Backend вместо локальной проверки
   const canEditPost = post.can_edit || false;
 
@@ -149,24 +168,26 @@ export default function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
   useEffect(() => {
     const metkaId = searchParams.get('metka');
     if (metkaId && parseInt(metkaId) === post.id) {
+      console.log(`🔗 Opening modal for post ${post.id} from URL`);
       setShowModal(true);
     }
   }, [searchParams, post.id]);
 
-  // ✅ Обновляем poll если он пришел с сервера
-  useEffect(() => {
-    if (post.poll && !poll) {
-      setPoll(post.poll);
-      setPollLoaded(true);
-    }
-  }, [post.poll]);
-
   // ✅ Ленивая загрузка опроса при появлении поста на экране
   useEffect(() => {
-    console.log(`📊 Post ${post.id}: has_poll=${post.has_poll}, poll=${!!poll}, pollLoaded=${pollLoaded}`);
+    console.log(`📊 Post ${post.id} poll check:`, {
+      has_poll: post.has_poll,
+      poll: !!poll,
+      pollLoaded,
+      pollLoading
+    });
     
-    // Если опрос уже есть или уже загружен - не загружаем
-    if (poll || pollLoaded || !post.has_poll) return;
+    if (pollLoaded || !post.has_poll) {
+      console.log(`⏭️ Post ${post.id}: skipping poll load (pollLoaded=${pollLoaded}, has_poll=${post.has_poll})`);
+      return; // Уже загружен или опроса нет
+    }
+
+    console.log(`👀 Post ${post.id}: setting up intersection observer for poll`);
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -190,9 +211,10 @@ export default function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
         observer.unobserve(element);
       }
     };
-  }, [post.id, post.has_poll, poll, pollLoaded, pollLoading]);
+  }, [post.id, post.has_poll, pollLoaded, pollLoading]);
 
   const loadPoll = async () => {
+    console.log(`🔄 Loading poll for post ${post.id}...`);
     try {
       setPollLoading(true);
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 
@@ -200,22 +222,31 @@ export default function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
           ? 'https://my-projects-gateway-zp.crv1ic.easypanel.host'
           : 'http://localhost:8000');
       
+      console.log(`📡 Fetching poll from: ${API_URL}/api/polls/post/${post.id}`);
+      
       const response = await fetch(`${API_URL}/api/polls/post/${post.id}`, {
         credentials: 'include',
       });
 
+      console.log(`📥 Poll response for post ${post.id}:`, response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log(`✅ Poll data for post ${post.id}:`, data);
         if (data.success && data.data) {
           setPoll(data.data);
+          console.log(`💾 Poll set for post ${post.id}`);
         }
+      } else {
+        console.log(`⚠️ Poll response not OK for post ${post.id}: ${response.status}`);
       }
       // Если 404 - опроса нет, это нормально
     } catch (error) {
-      console.error(`Error loading poll for post ${post.id}:`, error);
+      console.error(`❌ Error loading poll for post ${post.id}:`, error);
     } finally {
       setPollLoading(false);
       setPollLoaded(true);
+      console.log(`✔️ Poll loading finished for post ${post.id}`);
     }
   };
 
@@ -232,17 +263,23 @@ export default function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
 
   // Отслеживаем изменение showMenu - используем useLayoutEffect для синхронного выполнения
   useLayoutEffect(() => {
+    console.log(`🔄 useLayoutEffect: showMenu=${showMenu}, scrollPosition=${scrollPosition}, currentScroll=${window.scrollY}`);
+    // Не прокручиваем если scrollPosition = 0 (это значит что меню не было открыто)
     if (showMenu && scrollPosition > 0 && window.scrollY !== scrollPosition) {
+      console.log(`📜 Restoring scroll position to ${scrollPosition}`);
       window.scrollTo(0, scrollPosition);
     }
-  }, [showMenu, scrollPosition]);
+  }, [showMenu]); // Убрали scrollPosition из зависимостей
 
   // Дополнительная проверка после рендера (прокрутка может произойти после useLayoutEffect)
   useEffect(() => {
+    console.log(`🔄 useEffect: showMenu=${showMenu}, scrollPosition=${scrollPosition}, currentScroll=${window.scrollY}`);
+    // Не прокручиваем если scrollPosition = 0 (это значит что меню не было открыто)
     if (showMenu && scrollPosition > 0 && window.scrollY !== scrollPosition) {
+      console.log(`📜 Restoring scroll position to ${scrollPosition} (delayed)`);
       window.scrollTo(0, scrollPosition);
     }
-  }, [showMenu, scrollPosition]);
+  }, [showMenu]); // Убрали scrollPosition из зависимостей
 
   const loadLikeStatus = async () => {
     try {
@@ -262,7 +299,10 @@ export default function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
     }
   };
 
-  const handleLike = async () => {
+  const handleLike = async (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    console.log(`❤️ handleLike called for post ${post.id}`);
     // ✅ Оптимистичное обновление - обновляем UI сразу
     const wasLiked = isLiked;
     const oldCount = likesCount;
@@ -284,6 +324,7 @@ export default function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
         // Синхронизируем с реальными данными от сервера
         setIsLiked(response.data.liked);
         setLikesCount(response.data.likes_count);
+        console.log(`✅ Like toggled for post ${post.id}: liked=${response.data.liked}`);
       } else {
         // Откатываем изменения при ошибке
         console.error(`❌ [PostCard ${post.id}] Invalid response:`, response);
@@ -604,11 +645,24 @@ export default function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
       )}
 
       {/* Poll - ленивая загрузка */}
-      {poll && (
-        <div className="px-4 pb-3">
-          <PollDisplay poll={poll} />
-        </div>
-      )}
+      {(() => {
+        if (poll) {
+          console.log(`🎯 Rendering poll for post ${post.id}:`, poll);
+          return (
+            <div className="px-4 pb-3">
+              <PollDisplay poll={poll} />
+            </div>
+          );
+        } else if (post.has_poll) {
+          console.log(`⏳ Poll loading for post ${post.id}...`);
+          return (
+            <div className="px-4 pb-3 text-gray-500">
+              Загрузка опроса...
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       {/* Attached Pets */}
       {post.pets && post.pets.length > 0 && (
@@ -622,7 +676,7 @@ export default function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
       {/* Actions */}
       <div className="flex items-center gap-6 text-gray-600 px-4 py-3 border-t border-gray-100">
         <button 
-          onClick={handleLike}
+          onClick={(e) => handleLike(e)}
           className={`flex items-center gap-2 transition-colors ${isLiked ? 'text-red-500' : 'hover:text-red-500'}`}
         >
           <svg className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} fill={isLiked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
@@ -753,3 +807,10 @@ export default function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
     </div>
   );
 }
+
+// Оборачиваем в memo чтобы избежать лишних перерендеров
+export default memo(PostCard, (prevProps, nextProps) => {
+  // Перерендериваем только если изменился сам пост
+  return prevProps.post.id === nextProps.post.id &&
+         prevProps.post.updated_at === nextProps.post.updated_at;
+});

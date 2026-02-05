@@ -808,7 +808,7 @@ func getUnreadCount(db *sql.DB, chatID, userID int) (int, error) {
 }
 
 func markMessagesAsRead(db *sql.DB, chatID, userID int) {
-	_, err := db.Exec(ConvertPlaceholders(`
+	result, err := db.Exec(ConvertPlaceholders(`
 		UPDATE messages 
 		SET is_read = TRUE, read_at = ?
 		WHERE chat_id = ? AND receiver_id = ? AND is_read = FALSE
@@ -816,6 +816,30 @@ func markMessagesAsRead(db *sql.DB, chatID, userID int) {
 
 	if err != nil {
 		log.Printf("⚠️ Warning: Failed to mark messages as read: %v", err)
+		return
+	}
+
+	// Проверяем сколько сообщений было помечено
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected > 0 {
+		log.Printf("✅ Marked %d messages as read in chat %d for user %d", rowsAffected, chatID, userID)
+
+		// Отправляем обновленный счетчик непрочитанных через WebSocket
+		go func() {
+			var count int
+			err := db.QueryRow(ConvertPlaceholders(`
+				SELECT COUNT(*) 
+				FROM messages 
+				WHERE receiver_id = ? AND is_read = FALSE
+			`), userID).Scan(&count)
+
+			if err == nil {
+				NotifyUnreadCount(userID)
+				log.Printf("📤 Sent updated unread count (%d) to user %d via WebSocket", count, userID)
+			} else {
+				log.Printf("⚠️ Failed to get unread count: %v", err)
+			}
+		}()
 	}
 }
 
