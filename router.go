@@ -12,6 +12,7 @@ func SetupRouter() *mux.Router {
 
 	// 1. Health check (публичный, БЕЗ middleware)
 	router.HandleFunc("/health", HealthCheckHandler).Methods("GET", "OPTIONS")
+	router.HandleFunc("/api/health", HealthCheckHandler).Methods("GET", "OPTIONS") // Дублируем для /api/health
 	router.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		respondJSON(w, map[string]interface{}{
@@ -43,46 +44,46 @@ func SetupRouter() *mux.Router {
 	apiRouter.Use(AuthMiddleware) // Проверка JWT
 
 	// Chunked upload endpoints (должны быть ПЕРВЫМИ для правильной маршрутизации)
-	apiRouter.PathPrefix("/media/chunked").HandlerFunc(ProxyHandler(mainService))
-	apiRouter.PathPrefix("/media").HandlerFunc(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/media/chunked").Handler(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/media").Handler(ProxyHandler(mainService))
 
 	// Специфичные маршруты сервисов (должны быть ПЕРЕД общими)
 	if clinicService != nil {
-		apiRouter.PathPrefix("/clinic").HandlerFunc(ProxyHandler(clinicService))
+		apiRouter.PathPrefix("/clinic").Handler(ProxyHandler(clinicService))
 	}
 	if petbaseService != nil {
-		apiRouter.PathPrefix("/petbase").HandlerFunc(ProxyHandler(petbaseService))
+		apiRouter.PathPrefix("/petbase").Handler(ProxyHandler(petbaseService))
 	}
 	if shelterService != nil {
-		apiRouter.PathPrefix("/shelter").HandlerFunc(ProxyHandler(shelterService))
+		apiRouter.PathPrefix("/shelter").Handler(ProxyHandler(shelterService))
 	}
 	if volunteerService != nil {
-		apiRouter.PathPrefix("/volunteer").HandlerFunc(ProxyHandler(volunteerService))
+		apiRouter.PathPrefix("/volunteer").Handler(ProxyHandler(volunteerService))
 	}
 
 	// Main Backend endpoints (общие маршруты)
-	apiRouter.PathPrefix("/posts").HandlerFunc(ProxyHandler(mainService))
-	apiRouter.PathPrefix("/profile").HandlerFunc(ProxyHandler(mainService))
-	apiRouter.PathPrefix("/users").HandlerFunc(ProxyHandler(mainService))
-	apiRouter.PathPrefix("/pets").HandlerFunc(ProxyHandler(mainService))
-	apiRouter.PathPrefix("/organizations").HandlerFunc(ProxyHandler(mainService))
-	apiRouter.PathPrefix("/comments").HandlerFunc(ProxyHandler(mainService))
-	apiRouter.PathPrefix("/likes").HandlerFunc(ProxyHandler(mainService))
-	apiRouter.PathPrefix("/favorites").HandlerFunc(ProxyHandler(mainService))
-	apiRouter.PathPrefix("/friends").HandlerFunc(ProxyHandler(mainService))
-	apiRouter.PathPrefix("/notifications").HandlerFunc(ProxyHandler(mainService))
-	apiRouter.PathPrefix("/chats").HandlerFunc(ProxyHandler(mainService))
-	apiRouter.PathPrefix("/messages").HandlerFunc(ProxyHandler(mainService))
-	apiRouter.PathPrefix("/announcements").HandlerFunc(ProxyHandler(mainService))
-	apiRouter.PathPrefix("/polls").HandlerFunc(ProxyHandler(mainService))
-	apiRouter.PathPrefix("/reports").HandlerFunc(ProxyHandler(mainService))
-	apiRouter.PathPrefix("/roles").HandlerFunc(ProxyHandler(mainService))
-	apiRouter.PathPrefix("/verification").HandlerFunc(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/posts").Handler(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/profile").Handler(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/users").Handler(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/pets").Handler(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/organizations").Handler(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/comments").Handler(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/likes").Handler(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/favorites").Handler(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/friends").Handler(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/notifications").Handler(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/chats").Handler(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/messages").Handler(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/announcements").Handler(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/polls").Handler(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/reports").Handler(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/roles").Handler(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/verification").Handler(ProxyHandler(mainService))
 
 	// Admin endpoints (только для admin/superadmin)
 	adminRouter := apiRouter.PathPrefix("/admin").Subrouter()
 	adminRouter.Use(AdminMiddleware) // Проверка роли
-	adminRouter.PathPrefix("/").HandlerFunc(ProxyHandler(mainService))
+	adminRouter.PathPrefix("/").Handler(ProxyHandler(mainService))
 
 	// 5. Gateway root - показывает статус (НЕ frontend!)
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
