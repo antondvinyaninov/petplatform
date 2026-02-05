@@ -107,8 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(token);
         
         // ✅ Сохраняем токен в cookie для WebSocket (Gateway читает из cookie)
-        // Токен живет 7 дней (как в Gateway)
-        const maxAge = 7 * 24 * 60 * 60; // 7 дней в секундах
+        // Токен живет 30 дней (как в Gateway)
+        const maxAge = 30 * 24 * 60 * 60; // 30 дней в секундах
         document.cookie = `auth_token=${token}; path=/; max-age=${maxAge}; SameSite=Strict${window.location.protocol === 'https:' ? '; Secure' : ''}`;
       } else {
         // Gateway использует cookie, токена в ответе нет
@@ -137,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('auth_token', token);
         
         // ✅ Сохраняем токен в cookie для WebSocket
-        const maxAge = 7 * 24 * 60 * 60; // 7 дней в секундах
+        const maxAge = 30 * 24 * 60 * 60; // 30 дней в секундах
         document.cookie = `auth_token=${token}; path=/; max-age=${maxAge}; SameSite=Strict${window.location.protocol === 'https:' ? '; Secure' : ''}`;
       }
       

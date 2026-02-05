@@ -338,12 +338,9 @@ export default function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
     const currentScroll = window.scrollY;
 
     try {
-      const response = await fetch(`http://localhost:8000/api/posts/${post.id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
+      const response = await postsApi.delete(post.id);
 
-      if (response.ok) {
+      if (response.success) {
         if (onDelete) {
           onDelete(post.id);
           

@@ -1,2 +1,4 @@
-Trigger rebuild after fixing NEXT_PUBLIC_API_URL in Easypanel env vars
-Timestamp: 2026-02-05 08:35:00
+DEPLOY_TIMESTAMP=1738800456
+# Этот файл используется для триггера пересборки в Easypanel
+# Изменение этого файла заставит Easypanel пересобрать контейнер
+# Last update: Fixed hardcoded localhost:8000 in PostCard delete function

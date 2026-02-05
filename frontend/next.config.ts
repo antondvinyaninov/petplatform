@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Генерируем уникальный Build ID для каждого билда
+  // Это заставит браузеры загружать новые JS файлы вместо использования кеша
+  generateBuildId: async () => {
+    // Используем timestamp + random для гарантии уникальности
+    return `build-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+  },
   turbopack: {},
   images: {
     remotePatterns: [

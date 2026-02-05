@@ -107,7 +107,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 			"user_id": int(userID),
 			"email":   req.Email,
 			"role":    "user",
-			"exp":     time.Now().Add(7 * 24 * time.Hour).Unix(),
+			"exp":     time.Now().Add(30 * 24 * time.Hour).Unix(), // 30 дней
 			"iat":     time.Now().Unix(),
 		})
 
@@ -127,7 +127,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 			HttpOnly: true,
 			Secure:   false,
 			SameSite: http.SameSiteLaxMode,
-			MaxAge:   86400 * 7, // 7 days
+			MaxAge:   86400 * 30, // 30 дней
 		})
 
 		// Логируем регистрацию
@@ -218,7 +218,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   false,
 		SameSite: http.SameSiteLaxMode, // Lax для localhost
-		MaxAge:   86400 * 7,            // 7 days
+		MaxAge:   86400 * 30,           // 30 дней
 	})
 
 	// Логируем регистрацию
@@ -691,7 +691,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			"user_id": user.ID,
 			"email":   user.Email,
 			"role":    "user",
-			"exp":     time.Now().Add(7 * 24 * time.Hour).Unix(),
+			"exp":     time.Now().Add(30 * 24 * time.Hour).Unix(), // 30 дней
 			"iat":     time.Now().Unix(),
 		})
 
@@ -731,7 +731,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			HttpOnly: true,
 			Secure:   false,
 			SameSite: http.SameSiteLaxMode,
-			MaxAge:   86400 * 7, // 7 days
+			MaxAge:   86400 * 30, // 30 дней
 		})
 
 		// Логируем вход
@@ -826,7 +826,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   false,
 		SameSite: http.SameSiteLaxMode, // Lax для localhost
-		MaxAge:   86400 * 7,            // 7 days
+		MaxAge:   86400 * 30,           // 30 дней
 	})
 
 	log.Printf("🔍 LoginHandler: Cookie set for user %s", authResp.User.Email)
