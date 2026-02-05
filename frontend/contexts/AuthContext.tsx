@@ -91,15 +91,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    console.log('🔐 Login attempt:', { email });
     const response = await authApi.login(email, password);
-    console.log('📥 Login response:', response);
     
     if (response.success && response.data) {
       const responseData = response.data as any;
       const user = responseData.user;
       const token = responseData.token;
-      console.log('✅ Login successful:', { user, token: token ? 'present' : 'missing' });
       
       // Сохраняем токен в localStorage (если Gateway вернул)
       if (token) {
@@ -163,9 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = async () => {
     try {
-      console.log('🔄 Refreshing user data...');
       const authResponse = await authApi.me();
-      console.log('📥 Auth response:', authResponse);
       
       if (authResponse.success) {
         // Gateway возвращает {success: true, user: {...}}
@@ -186,7 +181,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         
         if (userData && userData.id) {
-          console.log('✅ Setting user in context:', userData);
           setUser(userData);
         } else {
           console.error('❌ No valid user data found in response');

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
 import { CheckIcon } from '@heroicons/react/24/outline';
 
@@ -43,6 +43,18 @@ export default function PollDisplay({ poll: initialPoll, onVoteUpdate }: PollDis
   const [selectedOptions, setSelectedOptions] = useState<number[]>(poll.user_votes || []);
   const [isVoting, setIsVoting] = useState(false);
   const [showVotersForOption, setShowVotersForOption] = useState<number | null>(null);
+
+  // ✅ Синхронизируем selectedOptions с poll.user_votes при обновлении
+  useEffect(() => {
+    if (poll.user_votes) {
+      setSelectedOptions(poll.user_votes);
+    }
+  }, [poll.user_votes]);
+
+  // ✅ Обновляем poll когда приходит новый initialPoll (например, после обновления страницы)
+  useEffect(() => {
+    setPoll(initialPoll);
+  }, [initialPoll]);
 
   const handleOptionToggle = (optionId: number) => {
     // Если опрос истек, ничего не делаем

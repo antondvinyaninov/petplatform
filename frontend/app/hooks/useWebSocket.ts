@@ -46,7 +46,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     // ✅ Не переподключаемся если уже подключены
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      console.log('🔌 WebSocket already connected, skipping reconnect');
       return;
     }
 
@@ -85,14 +84,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     // Передаем токен через query параметр
     const wsUrl = `${wsProtocol}//${wsHost}/ws?token=${token}`;
 
-    console.log('🔌 Connecting to WebSocket:', wsUrl.replace(token, 'TOKEN_HIDDEN'));
-
     try {
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('✅ WebSocket connected');
         // Обновляем состояние только если компонент смонтирован
         if (isMountedRef.current) {
           setIsConnected(true);
@@ -104,7 +100,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       ws.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
-          console.log('📨 WebSocket message:', message);
 
           switch (message.type) {
             case 'unread_count':
@@ -114,7 +109,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
               options.onNewMessage?.(message.data);
               break;
             default:
-              console.log('Unknown message type:', message.type);
+              // Unknown message type - ignore
           }
         } catch (error) {
           console.error('❌ Error parsing WebSocket message:', error);
@@ -126,7 +121,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       };
 
       ws.onclose = () => {
-        console.log('🔌 WebSocket disconnected');
         // Обновляем состояние только если компонент смонтирован
         if (isMountedRef.current) {
           setIsConnected(false);
@@ -144,9 +138,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
             connect();
           }, delay);
         } else if (!isMountedRef.current) {
-          console.log('Component unmounted, skipping reconnect');
+          // Component unmounted, skipping reconnect
         } else {
-          console.log('❌ Max reconnect attempts reached');
+          console.error('❌ WebSocket: Max reconnect attempts reached');
         }
       };
     } catch (error) {

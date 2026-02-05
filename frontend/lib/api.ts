@@ -5,8 +5,6 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ||
     ? 'https://my-projects-gateway-zp.crv1ic.easypanel.host'
     : 'http://localhost:8000');
 
-console.log('🔍 API_URL:', API_URL, 'hostname:', typeof window !== 'undefined' ? window.location.hostname : 'server');
-
 const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL || 'http://localhost:7100';
 
 interface ApiResponse<T> {
@@ -44,7 +42,6 @@ export class ApiClient {
   private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
     try {
       const result = await response.json();
-      console.log('📦 Response body:', result);
 
       if (!response.ok) {
         console.error('❌ API Error:', { status: response.status, error: result.error });
@@ -90,7 +87,6 @@ export class ApiClient {
 
   async post<T>(endpoint: string, body: unknown): Promise<ApiResponse<T>> {
     try {
-      console.log(`📤 POST ${endpoint}:`, body);
       const headers = await this.getHeaders();
       
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
@@ -100,7 +96,6 @@ export class ApiClient {
         body: JSON.stringify(body),
       });
 
-      console.log(`📥 Response ${endpoint}:`, { status: response.status, ok: response.ok });
       return this.handleResponse<T>(response);
     } catch (error) {
       console.error(`❌ Fetch error for ${endpoint}:`, error);
