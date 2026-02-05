@@ -198,7 +198,7 @@ export const usersApi = {
     allow_messages?: string;
     show_online?: string;
   }) =>
-    apiClient.put<User>('/api/profile', data),
+    apiClient.put<User>('/api/auth/profile', data),
   
   // Загрузка аватара
   uploadAvatar: async (file: File): Promise<ApiResponse<{ avatar_url: string; message: string }>> => {
