@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -274,8 +275,67 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func MeHandler(w http.ResponseWriter, r *http.Request) {
-	// Получаем пользователя из контекста (установлен в AuthMiddleware)
-	user := r.Context().Value("user").(*User)
+	// Получаем userID из контекста (установлен в AuthMiddleware)
+	contextUser := r.Context().Value("user").(*User)
+	userID := contextUser.ID
+
+	log.Printf("🔍 Fetching fresh user data for user_id=%d", userID)
+
+	// ВАЖНО: Читаем СВЕЖИЕ данные из БД, а не из JWT токена
+	var user User
+	var lastName, bio, phone, location, avatar, coverPhoto sql.NullString
+
+	query := `
+		SELECT u.id, u.email, u.name, u.last_name,
+		       u.bio, u.phone, u.location, u.avatar, u.cover_photo,
+		       u.profile_visibility, u.show_phone, u.show_email,
+		       u.allow_messages, u.show_online, u.verified, u.created_at,
+		       COALESCE(ur.role, 'user') as role
+		FROM users u
+		LEFT JOIN user_roles ur ON u.id = ur.user_id AND ur.is_active = true
+		WHERE u.id = $1
+		LIMIT 1`
+
+	err := db.QueryRow(query, userID).Scan(
+		&user.ID, &user.Email, &user.Name, &lastName,
+		&bio, &phone, &location, &avatar,
+		&coverPhoto, &user.ProfileVisibility, &user.ShowPhone,
+		&user.ShowEmail, &user.AllowMessages, &user.ShowOnline,
+		&user.Verified, &user.CreatedAt, &user.Role,
+	)
+
+	if err == sql.ErrNoRows {
+		log.Printf("❌ User not found: id=%d", userID)
+		respondError(w, "User not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("❌ Database error in MeHandler: %v", err)
+		respondError(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	// Конвертируем NULL значения
+	if lastName.Valid {
+		user.LastName = lastName.String
+	}
+	if bio.Valid {
+		user.Bio = &bio.String
+	}
+	if phone.Valid {
+		user.Phone = &phone.String
+	}
+	if location.Valid {
+		user.Location = &location.String
+	}
+	if avatar.Valid {
+		user.Avatar = &avatar.String
+	}
+	if coverPhoto.Valid {
+		user.CoverPhoto = &coverPhoto.String
+	}
+
+	log.Printf("✅ Fresh user data fetched: id=%d, name=%s, last_name=%s", user.ID, user.Name, user.LastName)
 
 	respondJSON(w, map[string]interface{}{
 		"success": true,
@@ -308,5 +368,166 @@ func respondError(w http.ResponseWriter, message string, status int) {
 	respondJSON(w, map[string]interface{}{
 		"success": false,
 		"error":   message,
+	})
+}
+
+type UpdateProfileRequest struct {
+	Name              *string `json:"name"`
+	LastName          *string `json:"last_name"` // ВАЖНО: *string для поддержки NULL
+	Bio               *string `json:"bio"`
+	Phone             *string `json:"phone"`
+	Location          *string `json:"location"`
+	ProfileVisibility *string `json:"profile_visibility"`
+	ShowPhone         *string `json:"show_phone"`
+	ShowEmail         *string `json:"show_email"`
+	AllowMessages     *string `json:"allow_messages"`
+	ShowOnline        *string `json:"show_online"`
+}
+
+func UpdateProfileHandler(w http.ResponseWriter, r *http.Request) {
+	// Получаем userID из контекста
+	contextUser := r.Context().Value("user").(*User)
+	userID := contextUser.ID
+
+	var req UpdateProfileRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("❌ Failed to decode update profile request: %v", err)
+		respondError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("🔍 Updating profile for user %d: name=%v, last_name=%v, bio=%v, phone=%v, location=%v",
+		userID, req.Name, req.LastName, req.Bio, req.Phone, req.Location)
+
+	// Строим динамический SQL запрос (обновляем только переданные поля)
+	updates := []string{}
+	args := []interface{}{}
+	argIndex := 1
+
+	if req.Name != nil {
+		updates = append(updates, fmt.Sprintf("name = $%d", argIndex))
+		args = append(args, *req.Name)
+		argIndex++
+	}
+	if req.LastName != nil {
+		updates = append(updates, fmt.Sprintf("last_name = $%d", argIndex))
+		args = append(args, *req.LastName)
+		argIndex++
+	}
+	if req.Bio != nil {
+		updates = append(updates, fmt.Sprintf("bio = $%d", argIndex))
+		args = append(args, *req.Bio)
+		argIndex++
+	}
+	if req.Phone != nil {
+		updates = append(updates, fmt.Sprintf("phone = $%d", argIndex))
+		args = append(args, *req.Phone)
+		argIndex++
+	}
+	if req.Location != nil {
+		updates = append(updates, fmt.Sprintf("location = $%d", argIndex))
+		args = append(args, *req.Location)
+		argIndex++
+	}
+	if req.ProfileVisibility != nil {
+		updates = append(updates, fmt.Sprintf("profile_visibility = $%d", argIndex))
+		args = append(args, *req.ProfileVisibility)
+		argIndex++
+	}
+	if req.ShowPhone != nil {
+		updates = append(updates, fmt.Sprintf("show_phone = $%d", argIndex))
+		args = append(args, *req.ShowPhone)
+		argIndex++
+	}
+	if req.ShowEmail != nil {
+		updates = append(updates, fmt.Sprintf("show_email = $%d", argIndex))
+		args = append(args, *req.ShowEmail)
+		argIndex++
+	}
+	if req.AllowMessages != nil {
+		updates = append(updates, fmt.Sprintf("allow_messages = $%d", argIndex))
+		args = append(args, *req.AllowMessages)
+		argIndex++
+	}
+	if req.ShowOnline != nil {
+		updates = append(updates, fmt.Sprintf("show_online = $%d", argIndex))
+		args = append(args, *req.ShowOnline)
+		argIndex++
+	}
+
+	if len(updates) == 0 {
+		respondError(w, "No fields to update", http.StatusBadRequest)
+		return
+	}
+
+	// Добавляем userID в конец
+	args = append(args, userID)
+
+	query := fmt.Sprintf("UPDATE users SET %s WHERE id = $%d", strings.Join(updates, ", "), argIndex)
+	log.Printf("🔍 SQL Query: %s", query)
+	log.Printf("🔍 SQL Args: %v", args)
+
+	_, err := db.Exec(query, args...)
+	if err != nil {
+		log.Printf("❌ Failed to update profile: %v", err)
+		respondError(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("✅ Profile updated for user %d", userID)
+
+	// Возвращаем обновленные данные
+	var user User
+	var lastName, bio, phone, location, avatar, coverPhoto sql.NullString
+
+	selectQuery := `
+		SELECT u.id, u.email, u.name, u.last_name,
+		       u.bio, u.phone, u.location, u.avatar, u.cover_photo,
+		       u.profile_visibility, u.show_phone, u.show_email,
+		       u.allow_messages, u.show_online, u.verified, u.created_at,
+		       COALESCE(ur.role, 'user') as role
+		FROM users u
+		LEFT JOIN user_roles ur ON u.id = ur.user_id AND ur.is_active = true
+		WHERE u.id = $1
+		LIMIT 1`
+
+	err = db.QueryRow(selectQuery, userID).Scan(
+		&user.ID, &user.Email, &user.Name, &lastName,
+		&bio, &phone, &location, &avatar,
+		&coverPhoto, &user.ProfileVisibility, &user.ShowPhone,
+		&user.ShowEmail, &user.AllowMessages, &user.ShowOnline,
+		&user.Verified, &user.CreatedAt, &user.Role,
+	)
+
+	if err != nil {
+		log.Printf("❌ Failed to fetch updated user: %v", err)
+		respondError(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	// Конвертируем NULL значения
+	if lastName.Valid {
+		user.LastName = lastName.String
+	}
+	if bio.Valid {
+		user.Bio = &bio.String
+	}
+	if phone.Valid {
+		user.Phone = &phone.String
+	}
+	if location.Valid {
+		user.Location = &location.String
+	}
+	if avatar.Valid {
+		user.Avatar = &avatar.String
+	}
+	if coverPhoto.Valid {
+		user.CoverPhoto = &coverPhoto.String
+	}
+
+	respondJSON(w, map[string]interface{}{
+		"success": true,
+		"message": "Profile updated successfully",
+		"user":    user,
 	})
 }

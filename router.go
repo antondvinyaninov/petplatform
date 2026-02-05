@@ -25,6 +25,7 @@ func SetupRouter() *mux.Router {
 	authRouter.HandleFunc("/login", LoginHandler).Methods("POST", "OPTIONS")
 	authRouter.HandleFunc("/logout", LogoutHandler).Methods("POST", "OPTIONS")
 	authRouter.HandleFunc("/me", AuthMiddlewareFunc(MeHandler)).Methods("GET", "OPTIONS")
+	authRouter.HandleFunc("/profile", AuthMiddlewareFunc(UpdateProfileHandler)).Methods("PUT", "PATCH", "OPTIONS")
 
 	// 4. API endpoints (защищенные, проксируются на сервисы)
 	apiRouter := router.PathPrefix("/api").Subrouter()

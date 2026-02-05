@@ -54,7 +54,8 @@ Gateway будет доступен на `http://localhost:80`
 - `POST /api/auth/register` - Регистрация
 - `POST /api/auth/login` - Вход
 - `POST /api/auth/logout` - Выход
-- `GET /api/auth/me` - Текущий пользователь
+- `GET /api/auth/me` - Текущий пользователь (всегда свежие данные из БД)
+- `PUT /api/auth/profile` - Обновление профиля (name, last_name, bio, phone, location, настройки приватности)
 
 ### API (проксируется на Main Service)
 - `/api/posts/*` → Main Backend
