@@ -126,18 +126,6 @@ function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
   const searchParams = useSearchParams();
   const [showMenu, setShowMenu] = useState(false);
   const [scrollPosition, setScrollPosition] = useState(0);
-
-  // Перехватываем window.scrollTo для отладки
-  useEffect(() => {
-    const originalScrollTo = window.scrollTo;
-    window.scrollTo = function(...args) {
-      console.trace(`🚨 window.scrollTo called:`, args);
-      return originalScrollTo.apply(this, args);
-    };
-    return () => {
-      window.scrollTo = originalScrollTo;
-    };
-  }, []);
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [commentsCount, setCommentsCount] = useState(post.comments_count);
@@ -154,13 +142,6 @@ function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
   const [pollLoading, setPollLoading] = useState(false);
   const [pollLoaded, setPollLoaded] = useState(!!post.poll);
 
-  console.log(`🔍 PostCard ${post.id} init:`, {
-    has_poll: post.has_poll,
-    poll_from_props: !!post.poll,
-    poll_state: !!poll,
-    pollLoaded
-  });
-
   // ✅ Используем can_edit из Backend вместо локальной проверки
   const canEditPost = post.can_edit || false;
 
@@ -168,37 +149,23 @@ function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
   useEffect(() => {
     const metkaId = searchParams.get('metka');
     if (metkaId && parseInt(metkaId) === post.id) {
-      console.log(`🔗 Opening modal for post ${post.id} from URL`);
       setShowModal(true);
     }
   }, [searchParams, post.id]);
 
   // ✅ Ленивая загрузка опроса при появлении поста на экране
   useEffect(() => {
-    console.log(`📊 Post ${post.id} poll check:`, {
-      has_poll: post.has_poll,
-      poll: !!poll,
-      pollLoaded,
-      pollLoading
-    });
-    
-    if (pollLoaded || !post.has_poll) {
-      console.log(`⏭️ Post ${post.id}: skipping poll load (pollLoaded=${pollLoaded}, has_poll=${post.has_poll})`);
-      return; // Уже загружен или опроса нет
-    }
-
-    console.log(`👀 Post ${post.id}: setting up intersection observer for poll`);
+    if (pollLoaded || !post.has_poll) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting && !pollLoaded && !pollLoading) {
-            console.log(`👁️ Post ${post.id} is visible, loading poll...`);
             loadPoll();
           }
         });
       },
-      { threshold: 0.1 } // Загружаем когда 10% поста видно
+      { threshold: 0.1 }
     );
 
     const element = document.getElementById(`post-${post.id}`);
@@ -214,7 +181,6 @@ function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
   }, [post.id, post.has_poll, pollLoaded, pollLoading]);
 
   const loadPoll = async () => {
-    console.log(`🔄 Loading poll for post ${post.id}...`);
     try {
       setPollLoading(true);
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 
@@ -222,31 +188,21 @@ function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
           ? 'https://my-projects-gateway-zp.crv1ic.easypanel.host'
           : 'http://localhost:8000');
       
-      console.log(`📡 Fetching poll from: ${API_URL}/api/polls/post/${post.id}`);
-      
       const response = await fetch(`${API_URL}/api/polls/post/${post.id}`, {
         credentials: 'include',
       });
 
-      console.log(`📥 Poll response for post ${post.id}:`, response.status);
-
       if (response.ok) {
         const data = await response.json();
-        console.log(`✅ Poll data for post ${post.id}:`, data);
         if (data.success && data.data) {
           setPoll(data.data);
-          console.log(`💾 Poll set for post ${post.id}`);
         }
-      } else {
-        console.log(`⚠️ Poll response not OK for post ${post.id}: ${response.status}`);
       }
-      // Если 404 - опроса нет, это нормально
     } catch (error) {
-      console.error(`❌ Error loading poll for post ${post.id}:`, error);
+      console.error(`Error loading poll for post ${post.id}:`, error);
     } finally {
       setPollLoading(false);
       setPollLoaded(true);
-      console.log(`✔️ Poll loading finished for post ${post.id}`);
     }
   };
 
@@ -263,23 +219,19 @@ function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
 
   // Отслеживаем изменение showMenu - используем useLayoutEffect для синхронного выполнения
   useLayoutEffect(() => {
-    console.log(`🔄 useLayoutEffect: showMenu=${showMenu}, scrollPosition=${scrollPosition}, currentScroll=${window.scrollY}`);
     // Не прокручиваем если scrollPosition = 0 (это значит что меню не было открыто)
     if (showMenu && scrollPosition > 0 && window.scrollY !== scrollPosition) {
-      console.log(`📜 Restoring scroll position to ${scrollPosition}`);
       window.scrollTo(0, scrollPosition);
     }
-  }, [showMenu]); // Убрали scrollPosition из зависимостей
+  }, [showMenu]);
 
   // Дополнительная проверка после рендера (прокрутка может произойти после useLayoutEffect)
   useEffect(() => {
-    console.log(`🔄 useEffect: showMenu=${showMenu}, scrollPosition=${scrollPosition}, currentScroll=${window.scrollY}`);
     // Не прокручиваем если scrollPosition = 0 (это значит что меню не было открыто)
     if (showMenu && scrollPosition > 0 && window.scrollY !== scrollPosition) {
-      console.log(`📜 Restoring scroll position to ${scrollPosition} (delayed)`);
       window.scrollTo(0, scrollPosition);
     }
-  }, [showMenu]); // Убрали scrollPosition из зависимостей
+  }, [showMenu]);
 
   const loadLikeStatus = async () => {
     try {
@@ -302,8 +254,7 @@ function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
   const handleLike = async (e?: React.MouseEvent) => {
     e?.preventDefault();
     e?.stopPropagation();
-    console.log(`❤️ handleLike called for post ${post.id}`);
-    // ✅ Оптимистичное обновление - обновляем UI сразу
+    
     const wasLiked = isLiked;
     const oldCount = likesCount;
     
@@ -324,7 +275,6 @@ function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
         // Синхронизируем с реальными данными от сервера
         setIsLiked(response.data.liked);
         setLikesCount(response.data.likes_count);
-        console.log(`✅ Like toggled for post ${post.id}: liked=${response.data.liked}`);
       } else {
         // Откатываем изменения при ошибке
         console.error(`❌ [PostCard ${post.id}] Invalid response:`, response);
@@ -647,14 +597,12 @@ function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
       {/* Poll - ленивая загрузка */}
       {(() => {
         if (poll) {
-          console.log(`🎯 Rendering poll for post ${post.id}:`, poll);
           return (
             <div className="px-4 pb-3">
               <PollDisplay poll={poll} />
             </div>
           );
         } else if (post.has_poll) {
-          console.log(`⏳ Poll loading for post ${post.id}...`);
           return (
             <div className="px-4 pb-3 text-gray-500">
               Загрузка опроса...
