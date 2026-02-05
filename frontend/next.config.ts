@@ -13,15 +13,14 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
-    // В production используем относительные пути (backend на том же хосте)
-    // В development используем localhost
-    const mainApiUrl = process.env.NODE_ENV === 'production' 
-      ? 'http://localhost:8000'  // В Docker контейнере Main Backend на localhost:8000
-      : 'http://localhost:8000';
+    // В production НЕ используем rewrites - фронтенд обращается напрямую к Gateway
+    // В development используем rewrites для проксирования на localhost
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
     
-    const petbaseApiUrl = process.env.NODE_ENV === 'production'
-      ? 'http://localhost:8100'  // В Docker контейнере PetBase на localhost:8100
-      : 'http://localhost:8100';
+    const mainApiUrl = 'http://localhost:8000';
+    const petbaseApiUrl = 'http://localhost:8100';
     
     return [
       // PetBase endpoints - должны быть ПЕРВЫМИ (более специфичные правила)
