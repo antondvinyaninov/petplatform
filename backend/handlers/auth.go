@@ -405,6 +405,9 @@ func MeHandler(w http.ResponseWriter, r *http.Request) {
 	// Читаем ответ
 	body, _ := io.ReadAll(resp.Body)
 
+	log.Printf("🔍 Gateway /api/auth/me response status: %d", resp.StatusCode)
+	log.Printf("🔍 Gateway /api/auth/me response body: %s", string(body))
+
 	if resp.StatusCode != http.StatusOK {
 		// Передаем ошибку от Auth Service
 		w.WriteHeader(resp.StatusCode)
