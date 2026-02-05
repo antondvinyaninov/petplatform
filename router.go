@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -11,6 +12,13 @@ func SetupRouter() *mux.Router {
 
 	// 1. Health check (публичный, БЕЗ middleware)
 	router.HandleFunc("/health", HealthCheckHandler).Methods("GET", "OPTIONS")
+	router.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		respondJSON(w, map[string]interface{}{
+			"status": "ok",
+			"time":   time.Now().Unix(),
+		})
+	}).Methods("GET", "OPTIONS")
 
 	// 2. WebSocket (КРИТИЧНО: БЕЗ LoggingMiddleware!)
 	// НЕ используем router.Use() для WebSocket
@@ -68,6 +76,8 @@ func SetupRouter() *mux.Router {
 	apiRouter.PathPrefix("/announcements").HandlerFunc(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/polls").HandlerFunc(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/reports").HandlerFunc(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/roles").HandlerFunc(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/verification").HandlerFunc(ProxyHandler(mainService))
 
 	// Admin endpoints (только для admin/superadmin)
 	adminRouter := apiRouter.PathPrefix("/admin").Subrouter()

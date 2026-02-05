@@ -73,6 +73,8 @@ Gateway будет доступен на `http://localhost:80`
 - `/api/announcements/*` → Main Backend
 - `/api/polls/*` → Main Backend
 - `/api/reports/*` → Main Backend
+- `/api/roles/*` → Main Backend (управление ролями)
+- `/api/verification/*` → Main Backend (верификация пользователей)
 - `/api/admin/*` → Main Backend (требует роль admin)
 
 ### WebSocket
@@ -83,6 +85,7 @@ Gateway будет доступен на `http://localhost:80`
 
 ### Служебные
 - `GET /health` - Проверка здоровья всех сервисов
+- `GET /ping` - Быстрая проверка доступности Gateway
 
 ## Переменные окружения
 
