@@ -27,6 +27,12 @@ RUN npm install --production=false
 # Copy frontend source
 COPY frontend/ ./
 
+# Debug: show what env vars are set
+RUN echo "=== Build-time environment ===" && \
+    echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}" && \
+    echo "NODE_ENV=${NODE_ENV}" && \
+    echo "=============================="
+
 # Build frontend for production
 RUN npm run build
 

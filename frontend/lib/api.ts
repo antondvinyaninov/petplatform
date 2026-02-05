@@ -1,9 +1,11 @@
 // В production используем Gateway URL
 // В development используем прямые URL к backend
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 
-  (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+  (typeof window !== 'undefined' && window.location.hostname.includes('easypanel.host')
     ? 'https://my-projects-gateway-zp.crv1ic.easypanel.host'
     : 'http://localhost:8000');
+
+console.log('🔍 API_URL:', API_URL, 'hostname:', typeof window !== 'undefined' ? window.location.hostname : 'server');
 
 const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL || 'http://localhost:7100';
 
