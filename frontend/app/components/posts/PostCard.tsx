@@ -197,13 +197,7 @@ export default function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('📊 Poll data received:', data);
         if (data.success && data.data) {
-          console.log('📊 Poll details:', {
-            user_voted: data.data.user_voted,
-            user_votes: data.data.user_votes,
-            options: data.data.options
-          });
           setPoll(data.data);
         }
       }
