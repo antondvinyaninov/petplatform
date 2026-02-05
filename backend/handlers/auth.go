@@ -431,10 +431,10 @@ func MeHandler(w http.ResponseWriter, r *http.Request) {
 			Avatar            *string `json:"avatar"`      // может быть null
 			CoverPhoto        *string `json:"cover_photo"` // может быть null
 			ProfileVisibility string  `json:"profile_visibility"`
-			ShowPhone         bool    `json:"show_phone"`     // boolean
-			ShowEmail         bool    `json:"show_email"`     // boolean
-			AllowMessages     bool    `json:"allow_messages"` // boolean
-			ShowOnline        bool    `json:"show_online"`    // boolean
+			ShowPhone         string  `json:"show_phone"`     // строка, не boolean!
+			ShowEmail         string  `json:"show_email"`     // строка, не boolean!
+			AllowMessages     string  `json:"allow_messages"` // строка, не boolean!
+			ShowOnline        string  `json:"show_online"`    // строка, не boolean!
 			Verified          bool    `json:"verified"`
 			Role              string  `json:"role"`
 			CreatedAt         string  `json:"created_at"`
@@ -477,23 +477,11 @@ func MeHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("🔍 Received from Auth Service: last_name=%s, phone=%s, location=%s, bio=%s, avatar=%s",
 		lastName, phone, location, bio, avatar)
 
-	// Конвертируем boolean в string для совместимости с Main Service БД
-	showPhone := "nobody"
-	if authResp.User.ShowPhone {
-		showPhone = "everyone"
-	}
-	showEmail := "nobody"
-	if authResp.User.ShowEmail {
-		showEmail = "everyone"
-	}
-	allowMessages := "nobody"
-	if authResp.User.AllowMessages {
-		allowMessages = "everyone"
-	}
-	showOnline := "no"
-	if authResp.User.ShowOnline {
-		showOnline = "yes"
-	}
+	// Gateway уже возвращает строки для полей приватности, конвертация не нужна
+	showPhone := authResp.User.ShowPhone
+	showEmail := authResp.User.ShowEmail
+	allowMessages := authResp.User.AllowMessages
+	showOnline := authResp.User.ShowOnline
 
 	// Формируем ответ в формате Main Backend (передаем ВСЕ поля от Auth Service)
 	response := map[string]interface{}{
