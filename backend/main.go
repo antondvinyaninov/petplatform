@@ -145,6 +145,7 @@ func main() {
 	// Protected routes (требуют авторизации)
 	http.HandleFunc("/api/users", protectedRoute(handlers.UsersHandler))
 	http.HandleFunc("/api/profile", protectedRoute(handlers.UpdateProfileHandler))
+	http.HandleFunc("/api/auth/profile", protectedRoute(handlers.UpdateProfileHandler)) // Алиас для Gateway
 	http.HandleFunc("/api/profile/avatar", protectedRoute(handlers.UploadAvatarHandler))
 	http.HandleFunc("/api/profile/avatar/delete", protectedRoute(handlers.DeleteAvatarHandler))
 	http.HandleFunc("/api/profile/cover", protectedRoute(handlers.UploadCoverPhotoHandler))
