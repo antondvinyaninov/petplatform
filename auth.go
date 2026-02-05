@@ -119,6 +119,9 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Отправляем уведомление в Telegram о новой регистрации
+	NotifyNewRegistration(&user)
+
 	// Создаем JWT токен
 	token, err := createToken(&user)
 	if err != nil {

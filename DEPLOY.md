@@ -19,6 +19,8 @@ GATEWAY_PORT=80
 ENVIRONMENT=production
 DATABASE_URL=postgres://zp:lmLG7k2ed4vas19@88.218.121.213:5432/zp-db?sslmode=disable
 MAIN_SERVICE_URL=http://my-projects-zooplatforma:80
+TELEGRAM_BOT_TOKEN=8206442500:AAFWYIMDy-i7-PC7cQwPmK_dRoATVU9YLEs
+TELEGRAM_CHAT_ID=273773467
 ```
 
 ### 3. Настройте домен
@@ -77,6 +79,8 @@ docker run -d \
   -e ENVIRONMENT=production \
   -e DATABASE_URL=postgres://zp:lmLG7k2ed4vas19@88.218.121.213:5432/zp-db?sslmode=disable \
   -e MAIN_SERVICE_URL=http://my-projects-zooplatforma:80 \
+  -e TELEGRAM_BOT_TOKEN=8206442500:AAFWYIMDy-i7-PC7cQwPmK_dRoATVU9YLEs \
+  -e TELEGRAM_CHAT_ID=273773467 \
   gateway
 ```
 

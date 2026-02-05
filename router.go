@@ -25,7 +25,7 @@ func SetupRouter() *mux.Router {
 	// НЕ используем router.Use() для WebSocket
 	router.HandleFunc("/ws", WebSocketProxyHandler(mainService)).Methods("GET")
 
-	// 3. Auth endpoints (публичные, С middleware)
+	// 3. Auth endpoints (публичные, С middleware) - ДОЛЖНЫ БЫТЬ ПЕРЕД /api/*
 	authRouter := router.PathPrefix("/api/auth").Subrouter()
 	authRouter.Use(LoggingMiddleware)
 	authRouter.Use(CORSMiddleware)
