@@ -14,6 +14,15 @@ export default function MessageList({ messages, currentUserId }: MessageListProp
   const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // ✅ Debug: проверяем что приходит
+  useEffect(() => {
+    if (messages.length > 0) {
+      console.log('📨 Messages received:', messages.length);
+      console.log('📨 First message:', messages[0]);
+      console.log('📨 Last message:', messages[messages.length - 1]);
+    }
+  }, [messages]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };

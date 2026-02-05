@@ -138,7 +138,10 @@ export default function MessengerPage() {
     try {
       const response = await apiClient.get<Message[]>(`/api/chats/${chatId}/messages`);
       
+      console.log('📨 Fetch messages response:', response);
+      
       if (response.success && response.data) {
+        console.log('📨 Messages data:', response.data);
         setMessages(response.data);
       } else {
         console.error('Failed to fetch messages');
