@@ -429,16 +429,19 @@ export default function UserProfilePage() {
               >
                 Публикации
               </button>
-              <button 
-                onClick={() => setActiveTab('media')}
-                className={`flex-1 px-3 sm:px-6 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                  activeTab === 'media'
-                    ? 'border-[#1B76FF] text-[#1B76FF]'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Медиа
-              </button>
+              {/* Вкладка Медиа - только для владельца профиля */}
+              {isOwnProfile && (
+                <button 
+                  onClick={() => setActiveTab('media')}
+                  className={`flex-1 px-3 sm:px-6 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                    activeTab === 'media'
+                      ? 'border-[#1B76FF] text-[#1B76FF]'
+                      : 'border-transparent text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Медиа
+                </button>
+              )}
             </div>
 
             {/* Content */}
