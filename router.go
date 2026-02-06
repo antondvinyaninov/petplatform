@@ -124,9 +124,9 @@ func SetupRouter() *mux.Router {
 	adminRouter.HandleFunc("/roles/revoke", RevokeRoleHandler).Methods("POST", "OPTIONS")
 
 	// Остальные admin endpoints проксируются на backend
-	adminRouter.HandleFunc("/posts", ProxyHandler(mainService).ServeHTTP).Methods("GET", "OPTIONS")
-	adminRouter.HandleFunc("/posts/{id:[0-9]+}", ProxyHandler(mainService).ServeHTTP).Methods("DELETE", "OPTIONS")
-	adminRouter.HandleFunc("/pets/user/{id:[0-9]+}", ProxyHandler(mainService).ServeHTTP).Methods("GET", "OPTIONS")
+	adminRouter.HandleFunc("/posts", GetAllPostsHandler).Methods("GET", "OPTIONS")
+	adminRouter.HandleFunc("/posts/{id:[0-9]+}", DeletePostHandler).Methods("DELETE", "OPTIONS")
+	adminRouter.HandleFunc("/pets/user/{id:[0-9]+}", GetUserPetsHandler).Methods("GET", "OPTIONS")
 	adminRouter.PathPrefix("/").Handler(ProxyHandler(mainService))
 
 	// 6. Gateway root - показывает статус (НЕ frontend!)

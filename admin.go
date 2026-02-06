@@ -353,3 +353,157 @@ func RevokeRoleHandler(w http.ResponseWriter, r *http.Request) {
 		"message": "Role revoked successfully",
 	})
 }
+
+// GetAllPostsHandler возвращает список всех постов для админки
+func GetAllPostsHandler(w http.ResponseWriter, r *http.Request) {
+	query := `
+		SELECT p.id, p.user_id, p.content, p.media_urls, p.created_at, p.updated_at,
+		       u.name, u.last_name, u.avatar
+		FROM posts p
+		JOIN users u ON p.user_id = u.id
+		ORDER BY p.created_at DESC
+		LIMIT 100
+	`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		log.Printf("❌ Failed to get posts: %v", err)
+		respondError(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	posts := []map[string]interface{}{}
+	for rows.Next() {
+		var id, userID int
+		var content string
+		var mediaURLs sql.NullString
+		var createdAt, updatedAt time.Time
+		var userName string
+		var userLastName, userAvatar sql.NullString
+
+		err := rows.Scan(&id, &userID, &content, &mediaURLs, &createdAt, &updatedAt,
+			&userName, &userLastName, &userAvatar)
+		if err != nil {
+			log.Printf("❌ Failed to scan post: %v", err)
+			continue
+		}
+
+		post := map[string]interface{}{
+			"id":         id,
+			"user_id":    userID,
+			"content":    content,
+			"created_at": createdAt,
+			"updated_at": updatedAt,
+			"user": map[string]interface{}{
+				"name": userName,
+			},
+		}
+
+		if mediaURLs.Valid {
+			post["media_urls"] = mediaURLs.String
+		}
+		if userLastName.Valid {
+			post["user"].(map[string]interface{})["last_name"] = userLastName.String
+		}
+		if userAvatar.Valid {
+			post["user"].(map[string]interface{})["avatar"] = userAvatar.String
+		}
+
+		posts = append(posts, post)
+	}
+
+	respondJSON(w, posts)
+}
+
+// DeletePostHandler удаляет пост
+func DeletePostHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	postID, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		respondError(w, "Invalid post ID", http.StatusBadRequest)
+		return
+	}
+
+	_, err = db.Exec("DELETE FROM posts WHERE id = $1", postID)
+	if err != nil {
+		log.Printf("❌ Failed to delete post: %v", err)
+		respondError(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	respondJSON(w, map[string]interface{}{
+		"success": true,
+		"message": "Post deleted successfully",
+	})
+}
+
+// GetUserPetsHandler возвращает питомцев пользователя
+func GetUserPetsHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userID, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		respondError(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	query := `
+		SELECT id, user_id, name, species, breed, age, gender, 
+		       avatar, description, created_at
+		FROM pets
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+	`
+
+	rows, err := db.Query(query, userID)
+	if err != nil {
+		log.Printf("❌ Failed to get pets: %v", err)
+		respondError(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	pets := []map[string]interface{}{}
+	for rows.Next() {
+		var id, userID int
+		var name, species string
+		var breed, gender, avatar, description sql.NullString
+		var age sql.NullInt64
+		var createdAt time.Time
+
+		err := rows.Scan(&id, &userID, &name, &species, &breed, &age, &gender,
+			&avatar, &description, &createdAt)
+		if err != nil {
+			log.Printf("❌ Failed to scan pet: %v", err)
+			continue
+		}
+
+		pet := map[string]interface{}{
+			"id":         id,
+			"user_id":    userID,
+			"name":       name,
+			"species":    species,
+			"created_at": createdAt,
+		}
+
+		if breed.Valid {
+			pet["breed"] = breed.String
+		}
+		if age.Valid {
+			pet["age"] = age.Int64
+		}
+		if gender.Valid {
+			pet["gender"] = gender.String
+		}
+		if avatar.Valid {
+			pet["avatar"] = avatar.String
+		}
+		if description.Valid {
+			pet["description"] = description.String
+		}
+
+		pets = append(pets, pet)
+	}
+
+	respondJSON(w, pets)
+}
