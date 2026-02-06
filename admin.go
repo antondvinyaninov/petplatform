@@ -370,14 +370,14 @@ func GetAllPostsHandler(w http.ResponseWriter, r *http.Request) {
 	query := `
 		SELECT 
 			p.id,
-			p.user_id,
+			p.author_id as user_id,
 			p.content,
 			p.created_at,
 			p.likes_count,
 			p.comments_count,
 			u.name as user_name
 		FROM posts p
-		LEFT JOIN users u ON p.user_id = u.id
+		LEFT JOIN users u ON p.author_id = u.id
 		WHERE p.is_deleted = false
 		ORDER BY p.created_at DESC
 		LIMIT 100
