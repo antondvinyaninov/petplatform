@@ -22,24 +22,16 @@ func CreateReportHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Логируем все заголовки для отладки
-	log.Printf("🔍 CreateReportHandler: Headers: %+v", r.Header)
-	log.Printf("🔍 CreateReportHandler: Context keys: %+v", r.Context())
+	// Получаем ID пользователя из Gateway заголовка (приоритет) или из контекста
+	userID := GetUserIDFromGateway(r)
 
-	// Получаем ID пользователя из контекста
-	userID, ok := r.Context().Value("userID").(int)
-	if !ok {
-		log.Printf("❌ CreateReportHandler: userID not found in context")
-
-		// Пробуем получить из заголовков Gateway
-		userIDHeader := r.Header.Get("X-User-ID")
-		log.Printf("🔍 CreateReportHandler: X-User-ID header: %s", userIDHeader)
-
+	if userID == 0 {
+		log.Printf("❌ CreateReportHandler: userID not found (neither in header nor context)")
 		sendErrorResponse(w, "Не авторизован", http.StatusUnauthorized)
 		return
 	}
 
-	log.Printf("✅ CreateReportHandler: userID from context: %d", userID)
+	log.Printf("✅ CreateReportHandler: userID: %d", userID)
 
 	var req CreateReportRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
