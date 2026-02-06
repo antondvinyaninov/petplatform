@@ -356,11 +356,20 @@ func RevokeRoleHandler(w http.ResponseWriter, r *http.Request) {
 
 // GetAllPostsHandler возвращает список всех постов для админки
 func GetAllPostsHandler(w http.ResponseWriter, r *http.Request) {
+	// Сначала проверим, есть ли вообще посты
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM posts").Scan(&count)
+	if err != nil {
+		log.Printf("❌ Failed to count posts: %v", err)
+		respondError(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+	log.Printf("📊 Total posts in database: %d", count)
+
+	// Упрощенный запрос - только основные поля из posts
 	query := `
-		SELECT p.id, p.user_id, p.content, p.media_urls, p.created_at, p.updated_at,
-		       u.name, u.last_name, u.avatar
+		SELECT p.id, p.user_id, p.content, p.created_at
 		FROM posts p
-		JOIN users u ON p.user_id = u.id
 		ORDER BY p.created_at DESC
 		LIMIT 100
 	`
@@ -377,13 +386,9 @@ func GetAllPostsHandler(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var id, userID int
 		var content string
-		var mediaURLs sql.NullString
-		var createdAt, updatedAt time.Time
-		var userName string
-		var userLastName, userAvatar sql.NullString
+		var createdAt time.Time
 
-		err := rows.Scan(&id, &userID, &content, &mediaURLs, &createdAt, &updatedAt,
-			&userName, &userLastName, &userAvatar)
+		err := rows.Scan(&id, &userID, &content, &createdAt)
 		if err != nil {
 			log.Printf("❌ Failed to scan post: %v", err)
 			continue
@@ -394,25 +399,12 @@ func GetAllPostsHandler(w http.ResponseWriter, r *http.Request) {
 			"user_id":    userID,
 			"content":    content,
 			"created_at": createdAt,
-			"updated_at": updatedAt,
-			"user": map[string]interface{}{
-				"name": userName,
-			},
-		}
-
-		if mediaURLs.Valid {
-			post["media_urls"] = mediaURLs.String
-		}
-		if userLastName.Valid {
-			post["user"].(map[string]interface{})["last_name"] = userLastName.String
-		}
-		if userAvatar.Valid {
-			post["user"].(map[string]interface{})["avatar"] = userAvatar.String
 		}
 
 		posts = append(posts, post)
 	}
 
+	log.Printf("✅ Returning %d posts", len(posts))
 	respondJSON(w, posts)
 }
 
