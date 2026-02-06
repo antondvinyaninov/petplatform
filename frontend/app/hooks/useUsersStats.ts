@@ -9,7 +9,7 @@ interface UsersStats {
   comments: number;
 }
 
-export function useUsersStats() {
+export function useUsersStats(isAuthenticated: boolean = false) {
   const [stats, setStats] = useState<UsersStats>({ 
     total: 0, 
     online: 0,
@@ -20,13 +20,19 @@ export function useUsersStats() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Не загружаем статистику для неавторизованных пользователей
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
     loadStats();
 
     // Обновляем статистику каждые 30 секунд
     const interval = setInterval(loadStats, 30000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isAuthenticated]);
 
   const loadStats = async () => {
     try {

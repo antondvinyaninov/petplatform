@@ -43,7 +43,7 @@ const additionalLinks = [
 export default function Sidebar() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const unreadCount = useUnreadMessages();
-  const { stats, loading: statsLoading } = useUsersStats();
+  const { stats, loading: statsLoading } = useUsersStats(isAuthenticated);
 
   // Навигация для авторизованных пользователей
   const authenticatedNavigation: NavItem[] = [
@@ -108,8 +108,8 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Статистика пользователей */}
-      {!statsLoading && (
+      {/* Статистика пользователей - только для авторизованных */}
+      {isAuthenticated && !statsLoading && (
         <div className="mt-4 mx-2 px-3 py-2.5 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
           <div className="space-y-1.5">
             {/* Пользователи */}
