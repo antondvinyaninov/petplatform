@@ -60,6 +60,12 @@ export default function UserProfilePage() {
       if (userResponse.success && userResponse.data) {
         setProfileUser(userResponse.data);
       } else {
+        // Если 401 и пользователь не авторизован - показываем сообщение
+        if (!isAuthenticated) {
+          setProfileUser(null);
+          setLoading(false);
+          return;
+        }
         router.push('/');
         return;
       }
@@ -86,6 +92,10 @@ export default function UserProfilePage() {
       }
     } catch (error) {
       console.error('Ошибка загрузки профиля:', error);
+      // Для неавторизованных показываем сообщение вместо редиректа
+      if (!isAuthenticated) {
+        setProfileUser(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -191,9 +201,53 @@ export default function UserProfilePage() {
 
   if (!profileUser) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <p className="text-gray-500">Пользователь не найден</p>
+      <div>
+        {/* Баннер для неавторизованных пользователей */}
+        {!isAuthenticated && (
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+            <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-900">Войдите, чтобы увидеть профиль</p>
+                <p className="text-xs text-gray-600">Для просмотра профилей пользователей необходимо войти в свой аккаунт.</p>
+              </div>
+              <div className="flex items-center gap-2 ml-4">
+                <button 
+                  onClick={() => router.push('/auth')}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap"
+                >
+                  Зарегистрироваться
+                </button>
+                <button 
+                  onClick={() => router.push('/auth')}
+                  className="px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors whitespace-nowrap"
+                  style={{ backgroundColor: '#1B76FF' }}
+                >
+                  Войти
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center bg-white rounded-xl shadow-sm border border-gray-100 p-8 max-w-md">
+            <p className="text-gray-700 font-medium text-lg mb-2">Профиль недоступен</p>
+            <p className="text-gray-500 mb-4">
+              {!isAuthenticated 
+                ? 'Войдите в свой аккаунт, чтобы просматривать профили пользователей'
+                : 'Пользователь не найден'
+              }
+            </p>
+            {!isAuthenticated && (
+              <button 
+                onClick={() => router.push('/auth')}
+                className="px-6 py-2 text-white rounded-lg font-medium"
+                style={{ backgroundColor: '#1B76FF' }}
+              >
+                Войти / Регистрация
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
