@@ -273,10 +273,19 @@ export default function UserProfilePage() {
       {/* Баннер для неавторизованных пользователей */}
       {!isAuthenticated && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-[60]">
-          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-900">Читайте только самое интересное</p>
-              <p className="text-xs text-gray-600">Мы нашли много записей по вашему вкусу и собрали их целую ленту — просто войдите в свой аккаунт.</p>
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {/* Логотип */}
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  <span className="text-white text-xl font-bold">🐾</span>
+                </div>
+              </div>
+              {/* Текст */}
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Присоединяйтесь к Зооплатформе!</p>
+                <p className="text-xs text-gray-600">Общайтесь с владельцами питомцев, делитесь фото и находите друзей для ваших любимцев</p>
+              </div>
             </div>
             <div className="flex items-center gap-2 ml-4">
               <button 
