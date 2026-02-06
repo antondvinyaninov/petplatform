@@ -366,18 +366,19 @@ func GetAllPostsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("📊 Total posts in database: %d", count)
 
-	// Расширенный запрос с подсчетом лайков и комментариев
+	// Расширенный запрос - используем готовые поля из таблицы
 	query := `
 		SELECT 
 			p.id,
 			p.user_id,
 			p.content,
 			p.created_at,
-			u.name as user_name,
-			(SELECT COUNT(*) FROM likes WHERE post_id = p.id) as likes_count,
-			(SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count
+			p.likes_count,
+			p.comments_count,
+			u.name as user_name
 		FROM posts p
 		LEFT JOIN users u ON p.user_id = u.id
+		WHERE p.is_deleted = false
 		ORDER BY p.created_at DESC
 		LIMIT 100
 	`
@@ -396,10 +397,10 @@ func GetAllPostsHandler(w http.ResponseWriter, r *http.Request) {
 		var userID sql.NullInt64
 		var content string
 		var createdAt time.Time
-		var userName sql.NullString
 		var likesCount, commentsCount int
+		var userName sql.NullString
 
-		err := rows.Scan(&id, &userID, &content, &createdAt, &userName, &likesCount, &commentsCount)
+		err := rows.Scan(&id, &userID, &content, &createdAt, &likesCount, &commentsCount, &userName)
 		if err != nil {
 			log.Printf("❌ Failed to scan post: %v", err)
 			continue
