@@ -114,15 +114,11 @@ export default function UserProfilePage() {
     // Проверяем только на клиенте
     if (typeof window === 'undefined') return;
 
-    if (!isLoading && !isAuthenticated) {
-      router.push('/auth');
-      return;
-    }
-
-    if (userId && isAuthenticated) {
+    // Загружаем профиль для всех (авторизованных и нет)
+    if (userId && !isLoading) {
       loadUserProfile();
     }
-  }, [userId, isLoading, isAuthenticated]); // Убрали currentUser из зависимостей
+  }, [userId, isLoading]); // Убрали проверку авторизации
 
   // Infinite scroll observer
   useEffect(() => {
@@ -217,6 +213,33 @@ export default function UserProfilePage() {
 
   return (
     <div>
+      {/* Баннер для неавторизованных пользователей */}
+      {!isAuthenticated && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-900">Читайте только самое интересное</p>
+              <p className="text-xs text-gray-600">Мы нашли много записей по вашему вкусу и собрали их целую ленту — просто войдите в свой аккаунт.</p>
+            </div>
+            <div className="flex items-center gap-2 ml-4">
+              <button 
+                onClick={() => router.push('/auth')}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap"
+              >
+                Зарегистрироваться
+              </button>
+              <button 
+                onClick={() => router.push('/auth')}
+                className="px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors whitespace-nowrap"
+                style={{ backgroundColor: '#1B76FF' }}
+              >
+                Войти
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Обложка профиля */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-2.5">
         {/* Cover Photo - показываем только если есть */}
@@ -314,7 +337,7 @@ export default function UserProfilePage() {
                     <span className="hidden sm:inline">Редактировать профиль</span>
                     <span className="sm:hidden">Редактировать</span>
                   </button>
-                ) : userId ? (
+                ) : userId && isAuthenticated ? (
                   <div className="flex items-center gap-2">
                     <FriendButton userId={userId} currentUserId={currentUser?.id || 0} />
                     <button 
