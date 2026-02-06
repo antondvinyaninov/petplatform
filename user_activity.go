@@ -52,8 +52,8 @@ func GetUserActivityLogsHandler(w http.ResponseWriter, r *http.Request) {
 		SELECT 
 			ual.id,
 			ual.user_id,
+			u.name || ' ' || COALESCE(u.last_name, '') as user_name,
 			u.email as user_email,
-			u.name as user_name,
 			ual.action_type,
 			ual.target_type,
 			ual.target_id,
@@ -110,11 +110,11 @@ func GetUserActivityLogsHandler(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var id, targetID int
 		var userID sql.NullInt64
-		var userEmail, userName, actionType, targetType sql.NullString
+		var userName, userEmail, actionType, targetType sql.NullString
 		var metadata, ipAddress, userAgent sql.NullString
 		var createdAt time.Time
 
-		err := rows.Scan(&id, &userID, &userEmail, &userName, &actionType,
+		err := rows.Scan(&id, &userID, &userName, &userEmail, &actionType,
 			&targetType, &targetID, &metadata, &ipAddress, &userAgent, &createdAt)
 		if err != nil {
 			log.Printf("❌ Failed to scan user activity log: %v", err)
@@ -179,7 +179,10 @@ func GetUserActivityLogsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("✅ Returning %d user activity logs", len(logs))
-	respondJSON(w, logs)
+	respondJSON(w, map[string]interface{}{
+		"success": true,
+		"data":    logs,
+	})
 }
 
 // GetUserActivityStatsHandler возвращает статистику активности пользователей
