@@ -279,6 +279,17 @@ export default function UserProfilePage() {
 
   const avatarUrl = profileUser?.avatar ? getMediaUrl(profileUser.avatar) : null;
 
+  // JSON-LD structured data для профиля
+  const personSchema = profileUser ? {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: getFullName(profileUser.name, profileUser.last_name),
+    description: profileUser.bio || 'Пользователь Зооплатформы',
+    image: avatarUrl,
+    url: `https://zooplatforma.ru/id${userId}`,
+    ...(profileUser.location && { address: { '@type': 'PostalAddress', addressLocality: profileUser.location } }),
+  } : null;
+
   return (
     <>
       <Head>
@@ -297,6 +308,14 @@ export default function UserProfilePage() {
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={pageDescription} />
         {avatarUrl && <meta name="twitter:image" content={avatarUrl} />}
+        
+        {/* JSON-LD Structured Data */}
+        {personSchema && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }}
+          />
+        )}
       </Head>
 
       <div>

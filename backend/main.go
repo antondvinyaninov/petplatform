@@ -142,6 +142,10 @@ func main() {
 	http.HandleFunc("/api/users/", enableCORS(handlers.UserHandler))               // Публичный просмотр профилей пользователей
 	http.HandleFunc("/api/users/stats", enableCORS(handlers.GetUsersStatsHandler)) // Публичная статистика пользователей
 
+	// Sitemap endpoints (публичные для SEO)
+	http.HandleFunc("/api/sitemap/users", enableCORS(handlers.GetSitemapUsersHandler)) // Список пользователей для sitemap
+	http.HandleFunc("/api/sitemap/posts", enableCORS(handlers.GetSitemapPostsHandler)) // Список постов для sitemap
+
 	// Protected routes (требуют авторизации)
 	http.HandleFunc("/api/users", protectedRoute(handlers.UsersHandler))
 	http.HandleFunc("/api/profile", protectedRoute(handlers.UpdateProfileHandler))
