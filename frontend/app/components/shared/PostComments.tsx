@@ -5,6 +5,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { commentsApi, Comment } from '../../../lib/api';
 import { UserIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
+import AuthModal from './AuthModal';
 
 interface PostCommentsProps {
   postId: number;
@@ -42,6 +43,7 @@ export default function PostComments({
   const [internalIsLoading, setInternalIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showComments, setShowComments] = useState(autoOpen);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const { user, isAuthenticated } = useAuth();
 
   // Используем внешние данные если в режиме displayOnly
@@ -291,25 +293,43 @@ export default function PostComments({
               )}
             </div>
             <div className="flex-1 flex gap-2">
-              <input
-                type="text"
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder={replyTo ? `Ответить ${replyTo.userName}...` : "Написать комментарий..."}
-                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent bg-white"
-                style={{ '--tw-ring-color': '#1B76FF' } as React.CSSProperties}
-              />
-              <button
-                type="submit"
-                disabled={!newComment.trim() || isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: '#1B76FF' }}
-              >
-                {isSubmitting ? '...' : 'Отправить'}
-              </button>
+              {isAuthenticated ? (
+                <>
+                  <input
+                    type="text"
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder={replyTo ? `Ответить ${replyTo.userName}...` : "Написать комментарий..."}
+                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent bg-white"
+                    style={{ '--tw-ring-color': '#1B76FF' } as React.CSSProperties}
+                  />
+                  <button
+                    type="submit"
+                    disabled={!newComment.trim() || isSubmitting}
+                    className="px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: '#1B76FF' }}
+                  >
+                    {isSubmitting ? '...' : 'Отправить'}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowAuthModal(true)}
+                  className="flex-1 px-3 py-2 text-sm text-left text-gray-500 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors"
+                >
+                  Написать комментарий...
+                </button>
+              )}
             </div>
           </div>
         </form>
+
+        {/* Auth Modal */}
+        <AuthModal 
+          isOpen={showAuthModal} 
+          onClose={() => setShowAuthModal(false)} 
+        />
       </div>
     );
   }
