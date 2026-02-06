@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { UserIcon } from '@heroicons/react/24/outline';
 import { friendsApi, Friendship } from '@/lib/api';
 import { getMediaUrl, getFullName } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface FriendsListWidgetProps {
   userId: number;
@@ -13,12 +14,18 @@ interface FriendsListWidgetProps {
 
 export default function FriendsListWidget({ userId, limit = 6 }: FriendsListWidgetProps) {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const [friends, setFriends] = useState<Friendship[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadFriends();
-  }, [userId]);
+    // Загружаем друзей только для авторизованных
+    if (isAuthenticated) {
+      loadFriends();
+    } else {
+      setLoading(false);
+    }
+  }, [userId, isAuthenticated]);
 
   const loadFriends = async () => {
     setLoading(true);
@@ -28,6 +35,11 @@ export default function FriendsListWidget({ userId, limit = 6 }: FriendsListWidg
     }
     setLoading(false);
   };
+
+  // Не показываем виджет для неавторизованных
+  if (!isAuthenticated) {
+    return null;
+  }
 
   if (loading) {
     return (
