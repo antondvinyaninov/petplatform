@@ -132,6 +132,13 @@ func SetupRouter() *mux.Router {
 	adminRouter.HandleFunc("/pets/user/{id:[0-9]+}", GetUserPetsHandler).Methods("GET", "OPTIONS")
 	adminRouter.PathPrefix("/").Handler(ProxyHandler(mainService))
 
+	// Moderation endpoints (модерация) - требует admin/superadmin
+	moderationRouter := apiRouter.PathPrefix("/moderation").Subrouter()
+	moderationRouter.Use(AdminMiddleware)
+	moderationRouter.HandleFunc("/reports", GetReportsHandler).Methods("GET", "OPTIONS")
+	moderationRouter.HandleFunc("/reports/{id:[0-9]+}", ReviewReportHandler).Methods("PUT", "OPTIONS")
+	moderationRouter.HandleFunc("/stats", GetModerationStatsHandler).Methods("GET", "OPTIONS")
+
 	// 6. Gateway root - показывает статус (НЕ frontend!)
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
