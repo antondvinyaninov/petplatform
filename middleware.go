@@ -22,9 +22,11 @@ func CORSMiddleware(next http.Handler) http.Handler {
 
 		// Список разрешенных origins
 		allowedOrigins := map[string]bool{
-			"http://localhost:3000":       true,
-			"https://zooplatforma.ru":     true,
-			"https://www.zooplatforma.ru": true,
+			"http://localhost:3000":         true,
+			"http://localhost:4000":         true,
+			"https://zooplatforma.ru":       true,
+			"https://www.zooplatforma.ru":   true,
+			"https://admin.zooplatforma.ru": true,
 		}
 
 		// Устанавливаем CORS заголовки только если origin разрешен

@@ -87,9 +87,11 @@ func WebSocketProxyHandler(service *Service) http.HandlerFunc {
 			CheckOrigin: func(r *http.Request) bool {
 				origin := r.Header.Get("Origin")
 				allowedOrigins := map[string]bool{
-					"https://zooplatforma.ru":     true,
-					"https://www.zooplatforma.ru": true,
-					"http://localhost:3000":       true,
+					"https://zooplatforma.ru":       true,
+					"https://www.zooplatforma.ru":   true,
+					"https://admin.zooplatforma.ru": true,
+					"http://localhost:3000":         true,
+					"http://localhost:4000":         true,
 				}
 				return allowedOrigins[origin]
 			},
