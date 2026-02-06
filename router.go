@@ -126,6 +126,10 @@ func SetupRouter() *mux.Router {
 	// Посты с опросами (новый endpoint)
 	adminRouter.HandleFunc("/posts/with-polls", GetAllPostsWithPollsHandler).Methods("GET", "OPTIONS")
 
+	// Admin logs endpoints
+	adminRouter.HandleFunc("/logs", GetAdminLogsHandler).Methods("GET", "OPTIONS")
+	adminRouter.HandleFunc("/logs/stats", GetAdminLogsStatsHandler).Methods("GET", "OPTIONS")
+
 	// Остальные admin endpoints проксируются на backend
 	adminRouter.HandleFunc("/posts", GetAllPostsHandler).Methods("GET", "OPTIONS")
 	adminRouter.HandleFunc("/posts/{id:[0-9]+}", DeletePostHandler).Methods("DELETE", "OPTIONS")
