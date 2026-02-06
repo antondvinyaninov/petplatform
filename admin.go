@@ -374,7 +374,7 @@ func GetAllPostsHandler(w http.ResponseWriter, r *http.Request) {
 			p.content,
 			p.created_at,
 			u.name as user_name,
-			(SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes_count,
+			(SELECT COUNT(*) FROM likes WHERE post_id = p.id) as likes_count,
 			(SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count
 		FROM posts p
 		LEFT JOIN users u ON p.user_id = u.id
