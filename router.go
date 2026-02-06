@@ -47,6 +47,11 @@ func SetupRouter() *mux.Router {
 	publicApiRouter.HandleFunc("/posts/user/{id:[0-9]+}", ProxyHandler(mainService).ServeHTTP).Methods("GET", "OPTIONS")
 	// Публичный просмотр комментариев к посту (для SEO)
 	publicApiRouter.HandleFunc("/comments/post/{id:[0-9]+}", ProxyHandler(mainService).ServeHTTP).Methods("GET", "OPTIONS")
+	// Публичный просмотр организаций (для SEO и админки)
+	publicApiRouter.HandleFunc("/organizations", ProxyHandler(mainService).ServeHTTP).Methods("GET", "OPTIONS")
+	publicApiRouter.HandleFunc("/organizations/all", ProxyHandler(mainService).ServeHTTP).Methods("GET", "OPTIONS")
+	publicApiRouter.HandleFunc("/organizations/{id:[0-9]+}", ProxyHandler(mainService).ServeHTTP).Methods("GET", "OPTIONS")
+	publicApiRouter.HandleFunc("/organizations/{id:[0-9]+}/members", ProxyHandler(mainService).ServeHTTP).Methods("GET", "OPTIONS")
 	// Sitemap endpoints для поисковиков
 	publicApiRouter.HandleFunc("/sitemap/users", ProxyHandler(mainService).ServeHTTP).Methods("GET", "OPTIONS")
 	publicApiRouter.HandleFunc("/sitemap/posts", ProxyHandler(mainService).ServeHTTP).Methods("GET", "OPTIONS")
@@ -98,6 +103,22 @@ func SetupRouter() *mux.Router {
 	// Admin endpoints (только для admin/superadmin)
 	adminRouter := apiRouter.PathPrefix("/admin").Subrouter()
 	adminRouter.Use(AdminMiddleware) // Проверка роли
+
+	// Admin-специфичные endpoints (обрабатываются Gateway)
+	adminRouter.HandleFunc("/activity/stats", ActivityStatsHandler).Methods("GET", "OPTIONS")
+	adminRouter.HandleFunc("/users", GetUsersHandler).Methods("GET", "OPTIONS")
+	adminRouter.HandleFunc("/users/{id:[0-9]+}", GetUserByIDHandler).Methods("GET", "OPTIONS")
+	adminRouter.HandleFunc("/verification/verify", VerifyUserHandler).Methods("POST", "OPTIONS")
+	adminRouter.HandleFunc("/verification/unverify", UnverifyUserHandler).Methods("POST", "OPTIONS")
+	adminRouter.HandleFunc("/roles/user/{id:[0-9]+}", GetUserRolesHandler).Methods("GET", "OPTIONS")
+	adminRouter.HandleFunc("/roles/available", GetAvailableRolesHandler).Methods("GET", "OPTIONS")
+	adminRouter.HandleFunc("/roles/grant", GrantRoleHandler).Methods("POST", "OPTIONS")
+	adminRouter.HandleFunc("/roles/revoke", RevokeRoleHandler).Methods("POST", "OPTIONS")
+
+	// Остальные admin endpoints проксируются на backend
+	adminRouter.HandleFunc("/posts", ProxyHandler(mainService).ServeHTTP).Methods("GET", "OPTIONS")
+	adminRouter.HandleFunc("/posts/{id:[0-9]+}", ProxyHandler(mainService).ServeHTTP).Methods("DELETE", "OPTIONS")
+	adminRouter.HandleFunc("/pets/user/{id:[0-9]+}", ProxyHandler(mainService).ServeHTTP).Methods("GET", "OPTIONS")
 	adminRouter.PathPrefix("/").Handler(ProxyHandler(mainService))
 
 	// 6. Gateway root - показывает статус (НЕ frontend!)
