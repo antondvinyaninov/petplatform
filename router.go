@@ -123,6 +123,9 @@ func SetupRouter() *mux.Router {
 	adminRouter.HandleFunc("/roles/grant", GrantRoleHandler).Methods("POST", "OPTIONS")
 	adminRouter.HandleFunc("/roles/revoke", RevokeRoleHandler).Methods("POST", "OPTIONS")
 
+	// Посты с опросами (новый endpoint)
+	adminRouter.HandleFunc("/posts/with-polls", GetAllPostsWithPollsHandler).Methods("GET", "OPTIONS")
+
 	// Остальные admin endpoints проксируются на backend
 	adminRouter.HandleFunc("/posts", GetAllPostsHandler).Methods("GET", "OPTIONS")
 	adminRouter.HandleFunc("/posts/{id:[0-9]+}", DeletePostHandler).Methods("DELETE", "OPTIONS")
