@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Head from 'next/head';
 import { useAuth } from '../../../contexts/AuthContext';
 import { postsApi, petsApi, usersApi, Post, Pet, User } from '../../../lib/api';
 import { getMediaUrl, getFullName, formatLastSeen } from '../../../lib/utils';
@@ -268,8 +269,37 @@ export default function UserProfilePage() {
     bio: profileUser.bio || 'Информация не заполнена',
   };
 
+  const pageTitle = profileUser 
+    ? `${getFullName(profileUser.name, profileUser.last_name)} - Зооплатформа`
+    : 'Профиль - Зооплатформа';
+  
+  const pageDescription = profileUser
+    ? `Профиль ${getFullName(profileUser.name, profileUser.last_name)} на Зооплатформе. ${profileUser.bio || 'Социальная сеть для владельцев домашних животных'}`
+    : 'Профиль пользователя на Зооплатформе';
+
+  const avatarUrl = profileUser?.avatar ? getMediaUrl(profileUser.avatar) : null;
+
   return (
-    <div>
+    <>
+      <Head>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        
+        {/* Open Graph */}
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:type" content="profile" />
+        <meta property="og:url" content={`https://zooplatforma.ru/id${userId}`} />
+        {avatarUrl && <meta property="og:image" content={avatarUrl} />}
+        
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        {avatarUrl && <meta name="twitter:image" content={avatarUrl} />}
+      </Head>
+
+      <div>
       {/* Баннер для неавторизованных пользователей */}
       {!isAuthenticated && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-[60]">
@@ -692,5 +722,6 @@ export default function UserProfilePage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
