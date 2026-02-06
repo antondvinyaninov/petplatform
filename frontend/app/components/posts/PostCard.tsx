@@ -338,8 +338,9 @@ function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
 
   const handleCloseModal = () => {
     setShowModal(false);
-    // Убираем параметр metka из URL
-    router.push('/', { scroll: false });
+    // Убираем параметр metka из URL, оставаясь на текущей странице
+    const currentPath = window.location.pathname;
+    router.push(currentPath, { scroll: false });
   };
 
   const handleDeletePost = async () => {
