@@ -41,8 +41,9 @@ export default function ReportButton({ targetType, targetId, targetName, isOpen,
     setError('');
 
     try {
-      // Всегда используем относительный путь для rewrites
-      const response = await fetch('/api/reports', {
+      // Используем API URL для прямого запроса к Gateway (как в других компонентах)
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.zooplatforma.ru';
+      const response = await fetch(`${API_URL}/api/reports`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
