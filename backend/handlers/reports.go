@@ -23,7 +23,7 @@ func CreateReportHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Получаем ID пользователя из Gateway заголовка (приоритет) или из контекста
-	userID := GetUserIDFromGateway(r)
+	userID, _ := GetUserIDFromGateway(r)
 
 	if userID == 0 {
 		log.Printf("❌ CreateReportHandler: userID not found (neither in header nor context)")
