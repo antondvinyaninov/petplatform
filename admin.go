@@ -384,7 +384,8 @@ func GetAllPostsHandler(w http.ResponseWriter, r *http.Request) {
 
 	posts := []map[string]interface{}{}
 	for rows.Next() {
-		var id, userID int
+		var id int
+		var userID sql.NullInt64 // Изменено: поддержка NULL значений
 		var content string
 		var createdAt time.Time
 
@@ -396,9 +397,15 @@ func GetAllPostsHandler(w http.ResponseWriter, r *http.Request) {
 
 		post := map[string]interface{}{
 			"id":         id,
-			"user_id":    userID,
 			"content":    content,
 			"created_at": createdAt,
+		}
+
+		// Добавляем user_id только если он не NULL
+		if userID.Valid {
+			post["user_id"] = userID.Int64
+		} else {
+			post["user_id"] = nil
 		}
 
 		posts = append(posts, post)
@@ -457,13 +464,14 @@ func GetUserPetsHandler(w http.ResponseWriter, r *http.Request) {
 
 	pets := []map[string]interface{}{}
 	for rows.Next() {
-		var id, userID int
+		var id int
+		var petUserID sql.NullInt64 // Изменено: поддержка NULL значений
 		var name, species string
 		var breed, gender, avatar, description sql.NullString
 		var age sql.NullInt64
 		var createdAt time.Time
 
-		err := rows.Scan(&id, &userID, &name, &species, &breed, &age, &gender,
+		err := rows.Scan(&id, &petUserID, &name, &species, &breed, &age, &gender,
 			&avatar, &description, &createdAt)
 		if err != nil {
 			log.Printf("❌ Failed to scan pet: %v", err)
@@ -472,10 +480,16 @@ func GetUserPetsHandler(w http.ResponseWriter, r *http.Request) {
 
 		pet := map[string]interface{}{
 			"id":         id,
-			"user_id":    userID,
 			"name":       name,
 			"species":    species,
 			"created_at": createdAt,
+		}
+
+		// Добавляем user_id только если он не NULL
+		if petUserID.Valid {
+			pet["user_id"] = petUserID.Int64
+		} else {
+			pet["user_id"] = nil
 		}
 
 		if breed.Valid {
