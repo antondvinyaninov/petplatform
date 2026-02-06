@@ -43,11 +43,22 @@ export default function ReportButton({ targetType, targetId, targetName, isOpen,
     try {
       // Используем API URL для прямого запроса к Gateway (как в других компонентах)
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.zooplatforma.ru';
+      
+      // Получаем токен из localStorage (как в api.ts)
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('auth_token');
+        if (token && token !== 'authenticated') {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+      
       const response = await fetch(`${API_URL}/api/reports`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify({
           target_type: targetType,
