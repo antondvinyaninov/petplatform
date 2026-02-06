@@ -85,11 +85,16 @@ func SetupRouter() *mux.Router {
 	}
 
 	// Main Backend endpoints (общие маршруты)
+	// ВАЖНО: НЕ используем PathPrefix для /organizations, чтобы не конфликтовать с публичным GET
 	apiRouter.PathPrefix("/posts").Handler(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/profile").Handler(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/users").Handler(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/pets").Handler(ProxyHandler(mainService))
-	apiRouter.PathPrefix("/organizations").Handler(ProxyHandler(mainService))
+	// organizations - только POST/PUT/DELETE (GET уже в публичном роутере)
+	apiRouter.HandleFunc("/organizations", ProxyHandler(mainService).ServeHTTP).Methods("POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+	apiRouter.HandleFunc("/organizations/{id:[0-9]+}", ProxyHandler(mainService).ServeHTTP).Methods("POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+	apiRouter.HandleFunc("/organizations/{id:[0-9]+}/members", ProxyHandler(mainService).ServeHTTP).Methods("POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+	apiRouter.PathPrefix("/organizations").Handler(ProxyHandler(mainService)) // Остальные маршруты организаций
 	apiRouter.PathPrefix("/comments").Handler(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/likes").Handler(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/favorites").Handler(ProxyHandler(mainService))
