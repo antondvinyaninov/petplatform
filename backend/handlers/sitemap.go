@@ -27,9 +27,9 @@ func GetSitemapUsersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Получаем всех пользователей (только ID и updated_at)
+	// Получаем всех пользователей (только ID и created_at)
 	rows, err := db.DB.Query(`
-		SELECT id, COALESCE(updated_at, created_at) as updated_at
+		SELECT id, created_at
 		FROM users
 		ORDER BY id
 	`)
@@ -68,11 +68,10 @@ func GetSitemapPostsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Получаем все посты (только ID и updated_at)
+	// Получаем все посты (только ID и created_at)
 	rows, err := db.DB.Query(`
-		SELECT id, COALESCE(updated_at, created_at) as updated_at
+		SELECT id, created_at
 		FROM posts
-		WHERE deleted_at IS NULL
 		ORDER BY id
 	`)
 	if err != nil {
