@@ -36,7 +36,15 @@ func SetupRouter() *mux.Router {
 	authRouter.HandleFunc("/me", AuthMiddlewareFunc(MeHandler)).Methods("GET", "OPTIONS")
 	authRouter.HandleFunc("/profile", AuthMiddlewareFunc(UpdateProfileHandler)).Methods("PUT", "PATCH", "OPTIONS")
 
-	// 4. API endpoints (защищенные, проксируются на сервисы)
+	// 4. Публичные API endpoints (БЕЗ авторизации, для SEO)
+	publicApiRouter := router.PathPrefix("/api").Subrouter()
+	publicApiRouter.Use(LoggingMiddleware)
+	publicApiRouter.Use(CORSMiddleware)
+	publicApiRouter.Use(RateLimitMiddleware)
+	// Публичный просмотр профилей пользователей (для SEO)
+	publicApiRouter.HandleFunc("/users/{id:[0-9]+}", ProxyHandler(mainService).ServeHTTP).Methods("GET", "OPTIONS")
+
+	// 5. API endpoints (защищенные, проксируются на сервисы)
 	apiRouter := router.PathPrefix("/api").Subrouter()
 	apiRouter.Use(LoggingMiddleware)
 	apiRouter.Use(CORSMiddleware)
@@ -85,7 +93,7 @@ func SetupRouter() *mux.Router {
 	adminRouter.Use(AdminMiddleware) // Проверка роли
 	adminRouter.PathPrefix("/").Handler(ProxyHandler(mainService))
 
-	// 5. Gateway root - показывает статус (НЕ frontend!)
+	// 6. Gateway root - показывает статус (НЕ frontend!)
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		respondJSON(w, map[string]interface{}{
