@@ -122,7 +122,7 @@ interface PostCardProps {
 }
 
 function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showMenu, setShowMenu] = useState(false);
