@@ -19,6 +19,7 @@ import PetCard from './PetCard';
 import ReportButton from './ReportButton';
 import CreatePost from './CreatePost';
 import LocationMap from '../shared/LocationMap';
+import AuthModal from '../shared/AuthModal';
 
 interface User {
   id: number;
@@ -131,6 +132,7 @@ function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
   const [commentsCount, setCommentsCount] = useState(post.comments_count);
   const [showModal, setShowModal] = useState(false);
   const [showLikersModal, setShowLikersModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   const [showLikeAnimation, setShowLikeAnimation] = useState(false);
@@ -254,6 +256,12 @@ function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
   const handleLike = async (e?: React.MouseEvent) => {
     e?.preventDefault();
     e?.stopPropagation();
+    
+    // Проверяем авторизацию
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+      return;
+    }
     
     const wasLiked = isLiked;
     const oldCount = likesCount;
@@ -752,6 +760,12 @@ function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
           onPostUpdated={handlePostUpdated}
         />
       )}
+
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+      />
     </div>
   );
 }
