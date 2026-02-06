@@ -70,25 +70,28 @@ export default function UserProfilePage() {
         return;
       }
 
-      // Загружаем первые посты и питомцев
-      const [postsResponse, petsResponse, curatedPetsResponse] = await Promise.all([
-        postsApi.getUserPosts(userId, { limit: 20, offset: 0 }),
-        petsApi.getUserPets(userId),
-        petsApi.getCuratedPets(userId),
-      ]);
-
+      // Загружаем посты (публичный endpoint)
+      const postsResponse = await postsApi.getUserPosts(userId, { limit: 20, offset: 0 });
       if (postsResponse.success && postsResponse.data) {
         setPosts(postsResponse.data);
-        setHasMore(postsResponse.data.length === 20); // Если вернулось 20, значит есть еще
-        setOffset(20); // Следующая порция начнется с 20
+        setHasMore(postsResponse.data.length === 20);
+        setOffset(20);
       }
 
-      if (petsResponse.success && petsResponse.data) {
-        setPets(petsResponse.data);
-      }
+      // Загружаем питомцев только для авторизованных
+      if (isAuthenticated) {
+        const [petsResponse, curatedPetsResponse] = await Promise.all([
+          petsApi.getUserPets(userId),
+          petsApi.getCuratedPets(userId),
+        ]);
 
-      if (curatedPetsResponse.success && curatedPetsResponse.data) {
-        setCuratedPets(curatedPetsResponse.data);
+        if (petsResponse.success && petsResponse.data) {
+          setPets(petsResponse.data);
+        }
+
+        if (curatedPetsResponse.success && curatedPetsResponse.data) {
+          setCuratedPets(curatedPetsResponse.data);
+        }
       }
     } catch (error) {
       console.error('Ошибка загрузки профиля:', error);
@@ -535,8 +538,9 @@ export default function UserProfilePage() {
             {userId && <FriendsListWidget userId={userId} limit={6} />}
           </div>
 
-          {/* Мои питомцы */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          {/* Мои питомцы - только для авторизованных */}
+          {isAuthenticated && (
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Питомцы</h2>
               {isOwnProfile && (
@@ -609,9 +613,10 @@ export default function UserProfilePage() {
               </div>
             )}
           </div>
+          )}
 
-          {/* Курирую */}
-          {curatedPets.length > 0 && (
+          {/* Курирую - только для авторизованных */}
+          {isAuthenticated && curatedPets.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">Курирую</h2>
