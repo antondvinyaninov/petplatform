@@ -366,10 +366,18 @@ func GetAllPostsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("📊 Total posts in database: %d", count)
 
-	// Упрощенный запрос - только основные поля из posts
+	// Расширенный запрос с подсчетом лайков и комментариев
 	query := `
-		SELECT p.id, p.user_id, p.content, p.created_at
+		SELECT 
+			p.id,
+			p.user_id,
+			p.content,
+			p.created_at,
+			u.name as user_name,
+			(SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes_count,
+			(SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count
 		FROM posts p
+		LEFT JOIN users u ON p.user_id = u.id
 		ORDER BY p.created_at DESC
 		LIMIT 100
 	`
@@ -385,20 +393,24 @@ func GetAllPostsHandler(w http.ResponseWriter, r *http.Request) {
 	posts := []map[string]interface{}{}
 	for rows.Next() {
 		var id int
-		var userID sql.NullInt64 // Изменено: поддержка NULL значений
+		var userID sql.NullInt64
 		var content string
 		var createdAt time.Time
+		var userName sql.NullString
+		var likesCount, commentsCount int
 
-		err := rows.Scan(&id, &userID, &content, &createdAt)
+		err := rows.Scan(&id, &userID, &content, &createdAt, &userName, &likesCount, &commentsCount)
 		if err != nil {
 			log.Printf("❌ Failed to scan post: %v", err)
 			continue
 		}
 
 		post := map[string]interface{}{
-			"id":         id,
-			"content":    content,
-			"created_at": createdAt,
+			"id":             id,
+			"content":        content,
+			"created_at":     createdAt,
+			"likes_count":    likesCount,
+			"comments_count": commentsCount,
 		}
 
 		// Добавляем user_id только если он не NULL
@@ -406,6 +418,13 @@ func GetAllPostsHandler(w http.ResponseWriter, r *http.Request) {
 			post["user_id"] = userID.Int64
 		} else {
 			post["user_id"] = nil
+		}
+
+		// Добавляем user_name только если он не NULL
+		if userName.Valid {
+			post["user_name"] = userName.String
+		} else {
+			post["user_name"] = nil
 		}
 
 		posts = append(posts, post)
