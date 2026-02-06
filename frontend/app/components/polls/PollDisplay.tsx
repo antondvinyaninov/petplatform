@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
 import { CheckIcon } from '@heroicons/react/24/outline';
+import { useAuth } from '@/contexts/AuthContext';
+import AuthModal from '../shared/AuthModal';
 
 interface PollOption {
   id: number;
@@ -39,10 +41,12 @@ interface PollDisplayProps {
 }
 
 export default function PollDisplay({ poll: initialPoll, onVoteUpdate }: PollDisplayProps) {
+  const { isAuthenticated } = useAuth();
   const [poll, setPoll] = useState(initialPoll);
   const [selectedOptions, setSelectedOptions] = useState<number[]>(poll.user_votes || []);
   const [isVoting, setIsVoting] = useState(false);
   const [showVotersForOption, setShowVotersForOption] = useState<number | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   // ✅ Синхронизируем selectedOptions с poll.user_votes при обновлении
   useEffect(() => {
@@ -57,6 +61,12 @@ export default function PollDisplay({ poll: initialPoll, onVoteUpdate }: PollDis
   }, [initialPoll]);
 
   const handleOptionToggle = (optionId: number) => {
+    // Проверяем авторизацию
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+      return;
+    }
+
     // Если опрос истек, ничего не делаем
     if (poll.is_expired) {
       return;
@@ -276,6 +286,12 @@ export default function PollDisplay({ poll: initialPoll, onVoteUpdate }: PollDis
           )}
         </div>
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+      />
     </div>
   );
 }
