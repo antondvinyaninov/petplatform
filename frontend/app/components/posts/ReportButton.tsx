@@ -41,8 +41,8 @@ export default function ReportButton({ targetType, targetId, targetName, isOpen,
     setError('');
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
-      const response = await fetch(`${apiUrl}/reports`, {
+      // Всегда используем относительный путь для rewrites
+      const response = await fetch('/api/reports', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
