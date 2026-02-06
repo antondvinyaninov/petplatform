@@ -20,7 +20,7 @@ type SitemapPost struct {
 	UpdatedAt string `json:"updated_at"`
 }
 
-// GetSitemapUsersHandler - возвращает список всех пользователей для sitemap
+// GetSitemapUsersHandler - возвращает список всех пользователей для sitemap (публичный endpoint)
 func GetSitemapUsersHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
