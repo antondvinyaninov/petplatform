@@ -49,34 +49,12 @@ export default function ReportButton({ targetType, targetId, targetName, isOpen,
         'Content-Type': 'application/json',
       };
       
-      let hasToken = false;
       if (typeof window !== 'undefined') {
         const token = localStorage.getItem('auth_token');
-        console.log('🔍 ReportButton: Checking auth token:', {
-          hasToken: !!token,
-          tokenValue: token ? `${token.substring(0, 20)}...` : 'null',
-          tokenType: typeof token,
-        });
-        
         if (token && token !== 'authenticated') {
           headers['Authorization'] = `Bearer ${token}`;
-          hasToken = true;
-          console.log('✅ ReportButton: Added Authorization header');
-        } else {
-          console.log('⚠️ ReportButton: No valid token found in localStorage');
         }
       }
-      
-      console.log('📤 ReportButton: Sending request:', {
-        url: `${API_URL}/api/reports`,
-        hasAuthHeader: hasToken,
-        credentials: 'include',
-        body: {
-          target_type: targetType,
-          target_id: targetId,
-          reason: selectedReason,
-        }
-      });
       
       const response = await fetch(`${API_URL}/api/reports`, {
         method: 'POST',
@@ -88,12 +66,6 @@ export default function ReportButton({ targetType, targetId, targetName, isOpen,
           reason: selectedReason,
           description: description.trim(),
         }),
-      });
-
-      console.log('📥 ReportButton: Response received:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
       });
 
       const data = await response.json();

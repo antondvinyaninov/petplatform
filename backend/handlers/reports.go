@@ -3,7 +3,6 @@ package handlers
 import (
 	"backend/db"
 	"encoding/json"
-	"log"
 	"net/http"
 	"time"
 )
@@ -26,12 +25,9 @@ func CreateReportHandler(w http.ResponseWriter, r *http.Request) {
 	userID, _ := GetUserIDFromGateway(r)
 
 	if userID == 0 {
-		log.Printf("❌ CreateReportHandler: userID not found (neither in header nor context)")
 		sendErrorResponse(w, "Не авторизован", http.StatusUnauthorized)
 		return
 	}
-
-	log.Printf("✅ CreateReportHandler: userID: %d", userID)
 
 	var req CreateReportRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

@@ -5,7 +5,22 @@
 
 // API Base URL
 export const getApiUrl = (): string => {
-  return process.env.NEXT_PUBLIC_API_URL || '';
+  // В production используем относительные пути для rewrites
+  // В development используем localhost
+  if (typeof window !== 'undefined') {
+    // Client-side: используем относительные пути для rewrites
+    return process.env.NEXT_PUBLIC_API_URL || '/api';
+  } else {
+    // Server-side (SSR, sitemap): используем полный URL
+    return process.env.NEXT_PUBLIC_API_URL || 'https://api.zooplatforma.ru';
+  }
+};
+
+// WebSocket URL (всегда полный URL)
+export const getWebSocketUrl = (): string => {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.zooplatforma.ru';
+  // Преобразуем http(s) в ws(s)
+  return apiUrl.replace(/^http/, 'ws');
 };
 
 // Auth Service URL
