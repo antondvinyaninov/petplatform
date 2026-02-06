@@ -119,6 +119,12 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Логируем регистрацию пользователя
+	LogUserActivity(user.ID, "user_register", "user", user.ID, map[string]interface{}{
+		"email":               user.Email,
+		"registration_method": "email",
+	}, r.RemoteAddr, r.UserAgent())
+
 	// Отправляем уведомление в Telegram о новой регистрации
 	NotifyNewRegistration(&user)
 
@@ -253,6 +259,12 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("✅ Login successful for user: %s (id=%d, role=%s)", req.Email, user.ID, user.Role)
 
+	// Логируем вход пользователя
+	LogUserActivity(user.ID, "user_login", "user", user.ID, map[string]interface{}{
+		"email": user.Email,
+		"role":  user.Role,
+	}, r.RemoteAddr, r.UserAgent())
+
 	respondJSON(w, map[string]interface{}{
 		"success": true,
 		"message": "Login successful",
@@ -262,6 +274,16 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	// Получаем пользователя из контекста если есть
+	var userID int
+	if contextUser := r.Context().Value("user"); contextUser != nil {
+		user := contextUser.(*User)
+		userID = user.ID
+
+		// Логируем выход пользователя
+		LogUserActivity(userID, "user_logout", "user", userID, nil, r.RemoteAddr, r.UserAgent())
+	}
+
 	// Удаляем cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:     "auth_token",
@@ -478,6 +500,28 @@ func UpdateProfileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("✅ Profile updated for user %d", userID)
+
+	// Логируем обновление профиля
+	updatedFields := []string{}
+	if req.Name != nil {
+		updatedFields = append(updatedFields, "name")
+	}
+	if req.LastName != nil {
+		updatedFields = append(updatedFields, "last_name")
+	}
+	if req.Bio != nil {
+		updatedFields = append(updatedFields, "bio")
+	}
+	if req.Phone != nil {
+		updatedFields = append(updatedFields, "phone")
+	}
+	if req.Location != nil {
+		updatedFields = append(updatedFields, "location")
+	}
+
+	LogUserActivity(userID, "profile_update", "user", userID, map[string]interface{}{
+		"updated_fields": updatedFields,
+	}, r.RemoteAddr, r.UserAgent())
 
 	// Возвращаем обновленные данные
 	var user User

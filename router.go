@@ -130,6 +130,11 @@ func SetupRouter() *mux.Router {
 	adminRouter.HandleFunc("/logs", GetAdminLogsHandler).Methods("GET", "OPTIONS")
 	adminRouter.HandleFunc("/logs/stats", GetAdminLogsStatsHandler).Methods("GET", "OPTIONS")
 
+	// User activity logs endpoints
+	adminRouter.HandleFunc("/user-activity", GetUserActivityLogsHandler).Methods("GET", "OPTIONS")
+	adminRouter.HandleFunc("/user-activity/stats", GetUserActivityStatsHandler).Methods("GET", "OPTIONS")
+	adminRouter.HandleFunc("/user-activity/user/:id", GetUserActivityByUserIDHandler).Methods("GET", "OPTIONS")
+
 	// Остальные admin endpoints проксируются на backend
 	adminRouter.HandleFunc("/posts", GetAllPostsHandler).Methods("GET", "OPTIONS")
 	adminRouter.HandleFunc("/posts/{id:[0-9]+}", DeletePostHandler).Methods("DELETE", "OPTIONS")
