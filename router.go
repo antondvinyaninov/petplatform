@@ -45,6 +45,8 @@ func SetupRouter() *mux.Router {
 	publicApiRouter.HandleFunc("/users/{id:[0-9]+}", ProxyHandler(mainService).ServeHTTP).Methods("GET", "OPTIONS")
 	// Публичный просмотр постов пользователя (для SEO)
 	publicApiRouter.HandleFunc("/posts/user/{id:[0-9]+}", ProxyHandler(mainService).ServeHTTP).Methods("GET", "OPTIONS")
+	// Публичный просмотр комментариев к посту (для SEO)
+	publicApiRouter.HandleFunc("/comments/post/{id:[0-9]+}", ProxyHandler(mainService).ServeHTTP).Methods("GET", "OPTIONS")
 
 	// 5. API endpoints (защищенные, проксируются на сервисы)
 	apiRouter := router.PathPrefix("/api").Subrouter()
