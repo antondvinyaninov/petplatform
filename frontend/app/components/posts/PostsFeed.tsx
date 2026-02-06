@@ -35,6 +35,12 @@ export default function PostsFeed({ activeFilter = 'for-you', initialPostId }: P
   const [selectedPostId, setSelectedPostId] = useState<number | null>(initialPostId || null);
 
   const loadPosts = async () => {
+    // Не загружаем посты для неавторизованных пользователей
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       // ✅ Убрали include_polls=true - опросы загружаются по требованию
@@ -76,7 +82,7 @@ export default function PostsFeed({ activeFilter = 'for-you', initialPostId }: P
     if (!isLoading) {
       loadPosts();
     }
-  }, [activeFilter, isLoading]);
+  }, [activeFilter, isLoading, isAuthenticated]);
 
   return (
     <div className="space-y-2.5">
@@ -91,6 +97,18 @@ export default function PostsFeed({ activeFilter = 'for-you', initialPostId }: P
       {loading ? (
         <div className="flex items-center justify-center py-12 bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        </div>
+      ) : !isAuthenticated ? (
+        <div className="text-center py-12 bg-white rounded-lg shadow-sm border border-gray-200">
+          <p className="text-gray-700 font-medium text-lg mb-2">Добро пожаловать в Зооплатформу!</p>
+          <p className="text-gray-500 mb-4">Войдите или зарегистрируйтесь, чтобы увидеть ленту постов</p>
+          <a 
+            href="/auth" 
+            className="inline-block px-6 py-2 text-white rounded-lg font-medium"
+            style={{ backgroundColor: '#1B76FF' }}
+          >
+            Войти / Регистрация
+          </a>
         </div>
       ) : posts.length === 0 ? (
         <div className="text-center py-12 text-gray-500 bg-white rounded-lg shadow-sm border border-gray-200">
