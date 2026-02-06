@@ -19,10 +19,15 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
-    // В production НЕ используем rewrites - фронтенд обращается напрямую к Gateway
+    // В production используем rewrites для проксирования на Gateway
     // В development используем rewrites для проксирования на localhost
     if (process.env.NODE_ENV === 'production') {
-      return [];
+      return [
+        {
+          source: '/api/:path*',
+          destination: 'https://api.zooplatforma.ru/api/:path*',
+        },
+      ];
     }
     
     const mainApiUrl = 'http://localhost:8000';
