@@ -40,7 +40,7 @@ func GetSitemapUsersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	var users []SitemapUser
+	users := make([]SitemapUser, 0)
 	for rows.Next() {
 		var user SitemapUser
 		if err := rows.Scan(&user.ID, &user.UpdatedAt); err != nil {
@@ -53,10 +53,12 @@ func GetSitemapUsersHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("✅ Sitemap: returning %d users", len(users))
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(models.Response{
+	if err := json.NewEncoder(w).Encode(models.Response{
 		Success: true,
 		Data:    users,
-	})
+	}); err != nil {
+		log.Printf("❌ Error encoding response: %v", err)
+	}
 }
 
 // GetSitemapPostsHandler - возвращает список всех постов для sitemap
@@ -80,7 +82,7 @@ func GetSitemapPostsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	var posts []SitemapPost
+	posts := make([]SitemapPost, 0)
 	for rows.Next() {
 		var post SitemapPost
 		if err := rows.Scan(&post.ID, &post.UpdatedAt); err != nil {
@@ -93,8 +95,10 @@ func GetSitemapPostsHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("✅ Sitemap: returning %d posts", len(posts))
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(models.Response{
+	if err := json.NewEncoder(w).Encode(models.Response{
 		Success: true,
 		Data:    posts,
-	})
+	}); err != nil {
+		log.Printf("❌ Error encoding response: %v", err)
+	}
 }
