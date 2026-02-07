@@ -1,6 +1,7 @@
 package main
 
 import (
+	"gateway/petid"
 	"net/http"
 	"time"
 
@@ -107,6 +108,11 @@ func SetupRouter() *mux.Router {
 	apiRouter.PathPrefix("/reports").Handler(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/roles").Handler(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/verification").Handler(ProxyHandler(mainService))
+
+	// PetID Database Gateway endpoints (защищенные)
+	petidRouter := apiRouter.PathPrefix("/gateway/db").Subrouter()
+	petidRouter.HandleFunc("/query", petid.DBQueryHandler).Methods("POST", "OPTIONS")
+	petidRouter.HandleFunc("/exec", petid.DBExecHandler).Methods("POST", "OPTIONS")
 
 	// Admin endpoints (только для admin/superadmin)
 	adminRouter := apiRouter.PathPrefix("/admin").Subrouter()

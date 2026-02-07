@@ -1,6 +1,7 @@
 package main
 
 import (
+	"gateway/petid"
 	"log"
 	"net/http"
 	"os"
@@ -30,6 +31,9 @@ func main() {
 		log.Fatalf("❌ Failed to initialize database: %v", err)
 	}
 	defer CloseDB()
+
+	// Инициализируем petid с подключением к БД
+	petid.SetDB(db)
 
 	// Инициализируем сервисы
 	InitServices()
