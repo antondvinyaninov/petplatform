@@ -22,9 +22,10 @@ git push origin admin
 - Name: `admin-backend`
 - Type: App
 - Source: GitHub
-  - Repository: `antondvinyaninovpetplatform`
+  - Repository: `antondvinyaninov/petplatform`
   - Branch: `admin`
-  - Build Path: `backend`
+  - Build Path: `/` (корень проекта)
+  - Dockerfile: `Dockerfile.backend`
 
 **Environment Variables:**
 ```
@@ -46,9 +47,10 @@ CORS_ORIGINS=https://admin.zooplatforma.ru,https://api.zooplatforma.ru
 - Name: `admin-frontend`
 - Type: App
 - Source: GitHub
-  - Repository: `antondvinyaninovpetplatform`
+  - Repository: `antondvinyaninov/petplatform`
   - Branch: `admin`
-  - Build Path: `frontend`
+  - Build Path: `/` (корень проекта)
+  - Dockerfile: `Dockerfile.frontend`
 
 **Environment Variables:**
 ```
