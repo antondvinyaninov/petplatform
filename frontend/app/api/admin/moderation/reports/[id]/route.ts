@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const adminBackend = process.env.ADMIN_API_URL || 'http://localhost:9000';
   const cookies = request.headers.get('cookie') || '';
   const body = await request.json();
+  const { id } = await params;
   
   try {
-    const response = await fetch(`${adminBackend}/api/admin/moderation/reports/${params.id}`, {
+    const response = await fetch(`${adminBackend}/api/admin/moderation/reports/${id}`, {
       method: 'PUT',
       headers: {
         'Cookie': cookies,
