@@ -91,6 +91,8 @@ func SetupRouter() *mux.Router {
 	apiRouter.PathPrefix("/profile").Handler(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/users").Handler(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/pets").Handler(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/main/breeds").Handler(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/breeds").Handler(ProxyHandler(mainService))
 	// organizations - только POST/PUT/DELETE (GET уже в публичном роутере)
 	apiRouter.HandleFunc("/organizations", ProxyHandler(mainService).ServeHTTP).Methods("POST", "PUT", "DELETE", "PATCH", "OPTIONS")
 	apiRouter.HandleFunc("/organizations/{id:[0-9]+}", ProxyHandler(mainService).ServeHTTP).Methods("POST", "PUT", "DELETE", "PATCH", "OPTIONS")
