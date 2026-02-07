@@ -45,15 +45,21 @@ COPY --from=frontend-builder /app/package.json ./package.json
 
 # Create startup script
 RUN echo '#!/bin/sh' > /app/start.sh && \
+    echo 'set -e' >> /app/start.sh && \
+    echo 'echo "Starting backend on port 9000..."' >> /app/start.sh && \
     echo '/app/admin-api &' >> /app/start.sh && \
-    echo 'node server.js' >> /app/start.sh && \
+    echo 'BACKEND_PID=$!' >> /app/start.sh && \
+    echo 'sleep 2' >> /app/start.sh && \
+    echo 'echo "Starting frontend on port 4000..."' >> /app/start.sh && \
+    echo 'PORT=4000 node server.js &' >> /app/start.sh && \
+    echo 'FRONTEND_PID=$!' >> /app/start.sh && \
+    echo 'wait $BACKEND_PID $FRONTEND_PID' >> /app/start.sh && \
     chmod +x /app/start.sh
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-EXPOSE 3000 9000
+EXPOSE 4000 9000
 
-CMD ["/app/start.sh"]
+CMD ["/bin/sh", "/app/start.sh"]
