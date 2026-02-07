@@ -1,346 +1,115 @@
-# ЗооПлатформа - Админ-панель
+# ZooPlatforma - Социальная сеть для владельцев питомцев
 
-Административная панель для управления платформой ЗооПлатформа.
+Платформа для владельцев питомцев, приютов и ветеринарных клиник.
 
-## Архитектура
+## 📚 Документация
 
-### Development (локальная разработка)
+Проект состоит из трёх основных компонентов:
 
-```
-┌─────────────────┐
-│ Admin Frontend  │ :4000
-│   (Next.js)     │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Admin Backend  │ :9000
-│     (Go)        │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│    Gateway      │ :80 (api.zooplatforma.ru)
-│     (Go)        │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Main Backend   │ :8000
-│  (Go + Next.js) │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  PostgreSQL Database                │
-│  88.218.121.213:5432                │
-└─────────────────────────────────────┘
-```
+- **[MAIN.md](MAIN.md)** - Основной сайт (Next.js + Gateway API)
+- **[gateway.md](gateway.md)** - Gateway API (Go + PostgreSQL + Redis)
+- **[ADMIN.md](ADMIN.md)** - Административная панель (Next.js + Go)
 
-### Production
+## 🏗️ Архитектура
 
 ```
-Admin Frontend → Admin Backend → Gateway → Main Backend → Database
+┌─────────────────────────────────────────────────────────┐
+│                        Browser                          │
+└────────────┬──────────────────────┬─────────────────────┘
+             │                      │
+             ▼                      ▼
+    ┌────────────────┐     ┌────────────────┐
+    │  Main Site     │     │  Admin Panel   │
+    │  (Next.js)     │     │  (Next.js)     │
+    │  Port 3000     │     │  Port 4000     │
+    └────────┬───────┘     └────────┬───────┘
+             │                      │
+             │              ┌───────┴───────┐
+             │              │  Admin Backend│
+             │              │  (Go) :9000   │
+             │              └───────┬───────┘
+             │                      │
+             └──────────┬───────────┘
+                        ▼
+                ┌────────────────┐
+                │  Gateway API   │
+                │  (Go) :8080    │
+                └────────┬───────┘
+                         │
+                ┌────────┴────────┐
+                │                 │
+                ▼                 ▼
+        ┌──────────────┐  ┌──────────────┐
+        │  PostgreSQL  │  │    Redis     │
+        │  Port 5432   │  │  Port 6379   │
+        └──────────────┘  └──────────────┘
 ```
 
-## Адреса сервисов
+## 🎯 Компоненты
 
-### Development
-- **Admin Frontend:** http://localhost:4000
-- **Admin Backend:** http://localhost:9000
-- **Gateway:** https://api.zooplatforma.ru
-- **Main Backend:** (через Gateway)
+### 1. Main Site (Основной сайт)
+- **URL:** https://zooplatforma.ru
+- **Технологии:** Next.js 15, React 19, TypeScript
+- **Функции:** Социальная сеть для владельцев питомцев
+- **Документация:** [MAIN.md](MAIN.md)
 
-### Production
-- **Admin Frontend:** https://admin.zooplatforma.ru
-- **Admin Backend:** https://admin-api.zooplatforma.ru
-- **Gateway:** https://api.zooplatforma.ru
-- **Main Backend:** (через Gateway)
+### 2. Gateway API
+- **URL:** https://api.zooplatforma.ru
+- **Технологии:** Go, PostgreSQL, Redis
+- **Функции:** REST API, авторизация, база данных
+- **Документация:** [gateway.md](gateway.md)
 
-## Особенности
+### 3. Admin Panel (Админ-панель)
+- **URL:** https://admin.zooplatforma.ru
+- **Технологии:** Next.js 16, Go
+- **Функции:** Модерация, управление, мониторинг
+- **Документация:** [ADMIN.md](ADMIN.md)
 
-- ✅ **SSO авторизация** через Gateway
-- ✅ **Проксирование запросов** через Gateway (нет прямого доступа к БД)
-- ✅ **JWT токены** с проверкой роли superadmin
-- ✅ **CORS** настроен для работы с несколькими фронтендами
-- ✅ **Логирование** всех действий администраторов
-- ✅ **Мониторинг** ошибок и метрик системы
-- ✅ **Модерация** пользователей, постов, организаций
+## 🚀 Быстрый старт
 
-## Быстрый старт
-
-### Требования
-
-- Go 1.23+
-- Node.js 18+
-- **Gateway** доступен (https://api.zooplatforma.ru)
-- PostgreSQL база данных доступна
-- У вас есть пользователь с ролью `superadmin`
-
-### Порядок запуска сервисов
-
-**Важно:** Сервисы должны быть запущены в следующем порядке:
-
-1. PostgreSQL (база данных)
-2. Main Backend (через Gateway)
-3. Gateway (https://api.zooplatforma.ru)
-4. Admin Backend (порт 9000)
-5. Admin Frontend (порт 4000)
-
-### 1. Backend
+### Локальная разработка
 
 ```bash
-cd backend
+# 1. Запустить базу данных
+docker-compose up -d postgres redis
 
-# Для локальной разработки
-cp .env.development .env
-# ИЛИ
-cp .env.example .env
-
-# Отредактируйте .env если нужно
-nano .env
-
-# Установите зависимости
-go mod download
-
-# Запустите
+# 2. Запустить Gateway
+cd gateway
 go run main.go
-```
 
-Backend будет доступен на `http://localhost:9000`
-
-### 2. Frontend
-
-```bash
+# 3. Запустить Main Site
 cd frontend
-
-# Для локальной разработки
-cp .env.development .env.local
-# ИЛИ
-cp .env.example .env.local
-
-# Установите зависимости
 npm install
+npm run dev
 
-# Запустите
+# 4. Запустить Admin Panel (опционально)
+cd admin/backend
+go run main.go
+
+cd admin/frontend
+npm install
 npm run dev
 ```
 
-Frontend будет доступен на `http://localhost:4000`
+### Production URLs
 
-### 3. Авторизация
+- Main Site: https://zooplatforma.ru
+- Gateway API: https://api.zooplatforma.ru
+- Admin Panel: https://admin.zooplatforma.ru
 
-1. Войдите через Gateway: `http://localhost:80/api/auth/login`
-2. Gateway установит cookie `auth_token`
-3. Откройте админ-панель: `http://localhost:4000`
-4. Панель автоматически проверит токен и роль
+## 🛠️ Технологии
 
-**Важно:** Пользователь должен иметь роль `superadmin`!
+- **Frontend:** Next.js, React, TypeScript, Tailwind CSS
+- **Backend:** Go, PostgreSQL, Redis
+- **Auth:** JWT
+- **Deploy:** Docker, Easypanel
 
-## Конфигурация
+## 📄 Лицензия
 
-### Backend
+MIT License
 
-**Development (.env.development):**
-```env
-GATEWAY_URL=https://api.zooplatforma.ru
-JWT_SECRET=jyjy4VlgOPGIPSG5vJPurXDnd1ZpHj2X2dIBtdWfjJE=
-PORT=9000
-ENVIRONMENT=development
-CORS_ORIGINS=http://localhost:4000,http://localhost:3000,https://api.zooplatforma.ru
-```
+## 📞 Контакты
 
-**Production (.env.production):**
-```env
-GATEWAY_URL=https://api.zooplatforma.ru
-JWT_SECRET=jyjy4VlgOPGIPSG5vJPurXDnd1ZpHj2X2dIBtdWfjJE=
-PORT=9000
-ENVIRONMENT=production
-CORS_ORIGINS=https://admin.zooplatforma.ru,https://api.zooplatforma.ru
-```
-
-### Frontend
-
-**Development (.env.development или .env.local):**
-```env
-NEXT_PUBLIC_API_URL=http://localhost:9000
-NEXT_PUBLIC_GATEWAY_URL=https://api.zooplatforma.ru
-NEXT_PUBLIC_ENVIRONMENT=development
-```
-
-**Production (.env.production):**
-```env
-NEXT_PUBLIC_API_URL=
-NEXT_PUBLIC_GATEWAY_URL=https://api.zooplatforma.ru
-NEXT_PUBLIC_ENVIRONMENT=production
-```
-
-**Примечание:** В production `NEXT_PUBLIC_API_URL` пустой, так как используются относительные пути через Next.js rewrites.
-
-## Функционал
-
-### 📊 Дашборд
-- Статистика пользователей (всего, онлайн, верифицированные)
-- Статистика организаций
-- Активность за последний час/24 часа
-
-### 👥 Управление пользователями
-- Просмотр всех пользователей
-- Детальная информация
-- Блокировка/разблокировка
-- Удаление
-
-### 📝 Управление постами
-- Просмотр всех постов
-- Модерация (одобрение/отклонение)
-- Удаление
-
-### 🏢 Управление организациями
-- Просмотр всех организаций (приюты, клиники, фонды)
-- Верификация
-- Отклонение заявок
-- Статистика
-
-### 📋 Логирование
-- Просмотр действий администраторов
-- Фильтрация по типу действия
-- История изменений
-
-### 🔍 Мониторинг
-- Последние ошибки системы
-- Системные метрики
-- Статистика ошибок по сервисам
-- Health check всех сервисов
-
-### 🚨 Модерация
-- Просмотр жалоб пользователей
-- Рассмотрение жалоб
-- Статистика модерации
-
-## API Endpoints
-
-### Авторизация
-- `GET /api/admin/auth/me` - текущий пользователь
-- `POST /api/admin/auth/logout` - выход
-
-### Пользователи
-- `GET /api/admin/users` - список
-- `GET /api/admin/users/{id}` - детали
-- `PUT /api/admin/users/{id}` - обновить
-- `DELETE /api/admin/users/{id}` - удалить
-
-### Посты
-- `GET /api/admin/posts` - список
-- `GET /api/admin/posts/{id}` - детали
-- `PUT /api/admin/posts/{id}` - обновить
-- `DELETE /api/admin/posts/{id}` - удалить
-
-### Организации
-- `GET /api/admin/organizations` - список
-- `PUT /api/admin/organizations/{id}/verify` - верифицировать
-- `GET /api/admin/organizations/stats` - статистика
-
-### Статистика
-- `GET /api/admin/stats/overview` - общая статистика
-
-### Логи
-- `GET /api/admin/logs` - логи администраторов
-
-### Мониторинг
-- `GET /api/admin/monitoring/errors` - ошибки
-- `GET /api/admin/monitoring/metrics` - метрики
-- `GET /api/admin/monitoring/error-stats` - статистика ошибок
-
-### Модерация
-- `GET /api/admin/moderation/reports` - жалобы
-- `PUT /api/admin/moderation/reports/{id}` - рассмотреть
-- `GET /api/admin/moderation/stats` - статистика
-
-## Разработка
-
-### Структура проекта
-
-```
-admin/
-├── backend/              # Go backend
-│   ├── main.go          # Точка входа
-│   ├── middleware/      # Авторизация, Gateway клиент
-│   └── handlers/        # API handlers
-├── frontend/            # Next.js frontend
-│   ├── app/            # Страницы и компоненты
-│   └── lib/            # Утилиты
-└── README.md           # Этот файл
-```
-
-### Backend
-
-Подробнее: [backend/README.md](backend/README.md)
-
-### Frontend
-
-Подробнее: [frontend/README.md](frontend/README.md)
-
-## Production
-
-### Backend
-
-```bash
-cd backend
-go build -o admin-api
-./admin-api
-```
-
-### Frontend
-
-```bash
-cd frontend
-npm run build
-npm start
-```
-
-### Docker (TODO)
-
-```bash
-docker-compose up -d
-```
-
-## Безопасность
-
-- ✅ JWT токены с проверкой подписи
-- ✅ Проверка роли superadmin на каждом запросе
-- ✅ CORS настроен только для разрешенных origins
-- ✅ HttpOnly cookies для токенов
-- ✅ Логирование всех действий администраторов
-- ✅ Нет прямого доступа к БД (только через Gateway)
-
-## Troubleshooting
-
-### Backend не запускается
-
-1. Проверьте что `JWT_SECRET` установлен в `.env`
-2. Проверьте что `GATEWAY_URL` правильный
-3. Проверьте что Gateway доступен
-
-### Frontend не может авторизоваться
-
-1. Проверьте что Gateway запущен
-2. Войдите через Gateway
-3. Проверьте что cookie `auth_token` установлен
-4. Проверьте что у пользователя есть роль `superadmin`
-
-### Ошибка "Доступ запрещен"
-
-Убедитесь что у пользователя есть роль `superadmin` в Gateway.
-
-### Gateway недоступен
-
-Проверьте что Gateway запущен и доступен по адресу из `GATEWAY_URL`.
-
-## Лицензия
-
-Proprietary - ЗооПлатформа
-
-## Контакты
-
-- GitHub: https://github.com/zooplatforma
-- Email: support@zooplatforma.ru
+- Website: https://zooplatforma.ru
+- API: https://api.zooplatforma.ru
+- Admin: https://admin.zooplatforma.ru
