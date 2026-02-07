@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+backend/tmp/
+
+# Build outputs
+frontend/.next/
+frontend/out/
+backend/admin-api
+backend/test-build
+
+# Environment files
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env
+frontend/.env.local
+
+# Logs
+*.log
+backend.log
+frontend.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+coverage/
+
+# Misc
+.air.toml
