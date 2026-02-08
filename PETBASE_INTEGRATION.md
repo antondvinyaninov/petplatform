@@ -16,7 +16,7 @@ JWT_SECRET=jyjy4VlgOPGIPSG5vJPurXDnd1ZpHj2X2dIBtdWfjJE=
 
 **Локальная разработка:**
 ```bash
-PETBASE_SERVICE_URL=http://localhost:8100
+PETBASE_SERVICE_URL=http://127.0.0.1:8100
 ```
 
 **Production (Easypanel):**
@@ -25,6 +25,11 @@ PETBASE_SERVICE_URL=http://my-projects-petbase:8100
 # или
 PETBASE_SERVICE_URL=http://petbase-service:8100
 ```
+
+**Почему 127.0.0.1 вместо localhost?**
+- `localhost` может резолвиться в IPv6 `[::1]`
+- Если PetBase слушает только на IPv4, будет ошибка "connection refused"
+- `127.0.0.1` - явный IPv4 адрес
 
 Узнай точное имя сервиса в Easypanel!
 
@@ -42,7 +47,7 @@ PETBASE_SERVICE_URL=http://petbase-service:8100
 
 **Локально:**
 ```bash
-curl http://localhost:8100/api/health
+curl http://127.0.0.1:8100/api/health
 ```
 
 **Production:**
@@ -55,7 +60,7 @@ curl http://my-projects-petbase:8100/api/health
 
 Проверь логи Gateway после запроса:
 ```
-🔄 Proxying: POST /api/petid/breeds → http://localhost:8100/api/breeds (Service: PetBase Service)
+🔄 Proxying: POST /api/petid/breeds → http://127.0.0.1:8100/api/breeds (Service: PetBase Service)
 🔍 Proxy headers: Authorization=Bearer xxx, Cookie=auth_token=xxx, X-User-ID=1
 ```
 
