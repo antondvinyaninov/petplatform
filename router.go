@@ -85,6 +85,10 @@ func SetupRouter() *mux.Router {
 		apiRouter.PathPrefix("/volunteer").Handler(ProxyHandler(volunteerService))
 	}
 
+	// PetID Database endpoints (прямой доступ к БД)
+	apiRouter.HandleFunc("/petid/breeds", petid.GetBreedsHandler).Methods("GET", "OPTIONS")
+	apiRouter.HandleFunc("/petid/species", petid.GetSpeciesHandler).Methods("GET", "OPTIONS")
+
 	// Main Backend endpoints (общие маршруты)
 	// ВАЖНО: НЕ используем PathPrefix для /organizations, чтобы не конфликтовать с публичным GET
 	apiRouter.PathPrefix("/posts").Handler(ProxyHandler(mainService))

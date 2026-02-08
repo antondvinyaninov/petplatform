@@ -167,3 +167,118 @@ func respondError(w http.ResponseWriter, message string, status int) {
 		"error":   message,
 	})
 }
+
+// GetBreedsHandler возвращает список пород
+func GetBreedsHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+
+	log.Printf("🔍 [PetID] Fetching breeds from database")
+
+	// Выполняем запрос к базе данных
+	query := `SELECT id, name, species_id, description, created_at, updated_at 
+	          FROM breeds 
+	          ORDER BY name ASC`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		log.Printf("❌ [PetID] Failed to fetch breeds: %v", err)
+		respondError(w, "Failed to fetch breeds", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	// Читаем результаты
+	var breeds []map[string]interface{}
+	for rows.Next() {
+		var id, speciesID int
+		var name, description sql.NullString
+		var createdAt, updatedAt time.Time
+
+		if err := rows.Scan(&id, &name, &speciesID, &description, &createdAt, &updatedAt); err != nil {
+			log.Printf("❌ [PetID] Failed to scan breed row: %v", err)
+			continue
+		}
+
+		breed := map[string]interface{}{
+			"id":         id,
+			"species_id": speciesID,
+			"created_at": createdAt,
+			"updated_at": updatedAt,
+		}
+
+		if name.Valid {
+			breed["name"] = name.String
+		}
+		if description.Valid {
+			breed["description"] = description.String
+		}
+
+		breeds = append(breeds, breed)
+	}
+
+	duration := time.Since(startTime)
+	log.Printf("✅ [PetID] Fetched %d breeds in %v", len(breeds), duration)
+
+	respondJSON(w, map[string]interface{}{
+		"success": true,
+		"breeds":  breeds,
+		"count":   len(breeds),
+	})
+}
+
+// GetSpeciesHandler возвращает список видов животных
+func GetSpeciesHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+
+	log.Printf("🔍 [PetID] Fetching species from database")
+
+	// Выполняем запрос к базе данных
+	query := `SELECT id, name, description, created_at, updated_at 
+	          FROM species 
+	          ORDER BY name ASC`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		log.Printf("❌ [PetID] Failed to fetch species: %v", err)
+		respondError(w, "Failed to fetch species", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	// Читаем результаты
+	var speciesList []map[string]interface{}
+	for rows.Next() {
+		var id int
+		var name, description sql.NullString
+		var createdAt, updatedAt time.Time
+
+		if err := rows.Scan(&id, &name, &description, &createdAt, &updatedAt); err != nil {
+			log.Printf("❌ [PetID] Failed to scan species row: %v", err)
+			continue
+		}
+
+		species := map[string]interface{}{
+			"id":         id,
+			"created_at": createdAt,
+			"updated_at": updatedAt,
+		}
+
+		if name.Valid {
+			species["name"] = name.String
+		}
+		if description.Valid {
+			species["description"] = description.String
+		}
+
+		speciesList = append(speciesList, species)
+	}
+
+	duration := time.Since(startTime)
+	log.Printf("✅ [PetID] Fetched %d species in %v", len(speciesList), duration)
+
+	respondJSON(w, map[string]interface{}{
+		"success": true,
+		"species": speciesList,
+		"count":   len(speciesList),
+	})
+}
