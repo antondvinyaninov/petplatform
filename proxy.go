@@ -31,7 +31,7 @@ func ProxyHandler(service *Service) http.HandlerFunc {
 			targetURL += "?" + r.URL.RawQuery
 		}
 
-		log.Printf("🔄 Proxying: %s %s → %s", r.Method, r.URL.Path, targetURL)
+		log.Printf("🔄 Proxying: %s %s → %s (Service: %s)", r.Method, r.URL.Path, targetURL, service.Name)
 
 		// Создаем новый запрос
 		proxyReq, err := http.NewRequest(r.Method, targetURL, r.Body)
