@@ -274,9 +274,7 @@ func UpdateBreedHandler(w http.ResponseWriter, r *http.Request) {
 		"name":        true,
 		"species_id":  true,
 		"description": true,
-		"photo":       true,
-		"image":       true,
-		"picture":     true,
+		"image_url":   true,
 	}
 
 	for field, value := range updateData {
@@ -296,7 +294,7 @@ func UpdateBreedHandler(w http.ResponseWriter, r *http.Request) {
 	args = append(args, breedID)
 
 	// Формируем запрос
-	query := fmt.Sprintf("UPDATE breeds SET %s WHERE id = $%d RETURNING id, name, species_id, description",
+	query := fmt.Sprintf("UPDATE breeds SET %s WHERE id = $%d RETURNING id, name, species_id, description, image_url",
 		strings.Join(updates, ", "), argIndex)
 
 	log.Printf("🔍 [PetID] SQL Query: %s", query)
@@ -306,9 +304,9 @@ func UpdateBreedHandler(w http.ResponseWriter, r *http.Request) {
 	var id int
 	var name string
 	var speciesID sql.NullInt64
-	var description sql.NullString
+	var description, imageURL sql.NullString
 
-	err := db.QueryRow(query, args...).Scan(&id, &name, &speciesID, &description)
+	err := db.QueryRow(query, args...).Scan(&id, &name, &speciesID, &description, &imageURL)
 	if err == sql.ErrNoRows {
 		log.Printf("❌ [PetID] Breed not found: %s", breedID)
 		respondError(w, "Breed not found", http.StatusNotFound)
@@ -330,6 +328,9 @@ func UpdateBreedHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if description.Valid {
 		breed["description"] = description.String
+	}
+	if imageURL.Valid {
+		breed["image_url"] = imageURL.String
 	}
 
 	duration := time.Since(startTime)
