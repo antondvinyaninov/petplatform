@@ -92,6 +92,9 @@ func SetupRouter() *mux.Router {
 
 	// PetID Service endpoints (проксирование на PetBase Service)
 	if petbaseService != nil {
+		// Breeds - POST для создания проксируется на PetBase Service
+		apiRouter.HandleFunc("/petid/breeds", ProxyHandler(petbaseService)).Methods("POST", "OPTIONS")
+		// Pets
 		apiRouter.HandleFunc("/petid/pets", ProxyHandler(petbaseService)).Methods("GET", "POST", "OPTIONS")
 		apiRouter.HandleFunc("/petid/pets/{id:[0-9]+}", ProxyHandler(petbaseService)).Methods("GET", "PUT", "DELETE", "OPTIONS")
 	}
