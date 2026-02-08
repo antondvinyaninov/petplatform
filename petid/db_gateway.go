@@ -175,7 +175,7 @@ func GetBreedsHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("🔍 [PetID] Fetching breeds from database")
 
 	// Выполняем запрос к базе данных
-	query := `SELECT id, name, species_id, description, created_at, updated_at 
+	query := `SELECT id, name, species_id, description, created_at 
 	          FROM breeds 
 	          ORDER BY name ASC`
 
@@ -192,9 +192,9 @@ func GetBreedsHandler(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var id, speciesID int
 		var name, description sql.NullString
-		var createdAt, updatedAt time.Time
+		var createdAt sql.NullTime
 
-		if err := rows.Scan(&id, &name, &speciesID, &description, &createdAt, &updatedAt); err != nil {
+		if err := rows.Scan(&id, &name, &speciesID, &description, &createdAt); err != nil {
 			log.Printf("❌ [PetID] Failed to scan breed row: %v", err)
 			continue
 		}
@@ -202,8 +202,6 @@ func GetBreedsHandler(w http.ResponseWriter, r *http.Request) {
 		breed := map[string]interface{}{
 			"id":         id,
 			"species_id": speciesID,
-			"created_at": createdAt,
-			"updated_at": updatedAt,
 		}
 
 		if name.Valid {
@@ -211,6 +209,9 @@ func GetBreedsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		if description.Valid {
 			breed["description"] = description.String
+		}
+		if createdAt.Valid {
+			breed["created_at"] = createdAt.Time
 		}
 
 		breeds = append(breeds, breed)
@@ -233,7 +234,7 @@ func GetSpeciesHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("🔍 [PetID] Fetching species from database")
 
 	// Выполняем запрос к базе данных
-	query := `SELECT id, name, description, created_at, updated_at 
+	query := `SELECT id, name, description, created_at 
 	          FROM species 
 	          ORDER BY name ASC`
 
@@ -250,17 +251,15 @@ func GetSpeciesHandler(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var id int
 		var name, description sql.NullString
-		var createdAt, updatedAt time.Time
+		var createdAt sql.NullTime
 
-		if err := rows.Scan(&id, &name, &description, &createdAt, &updatedAt); err != nil {
+		if err := rows.Scan(&id, &name, &description, &createdAt); err != nil {
 			log.Printf("❌ [PetID] Failed to scan species row: %v", err)
 			continue
 		}
 
 		species := map[string]interface{}{
-			"id":         id,
-			"created_at": createdAt,
-			"updated_at": updatedAt,
+			"id": id,
 		}
 
 		if name.Valid {
@@ -268,6 +267,9 @@ func GetSpeciesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		if description.Valid {
 			species["description"] = description.String
+		}
+		if createdAt.Valid {
+			species["created_at"] = createdAt.Time
 		}
 
 		speciesList = append(speciesList, species)
