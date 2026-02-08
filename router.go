@@ -90,6 +90,12 @@ func SetupRouter() *mux.Router {
 	apiRouter.HandleFunc("/petid/breeds/{id:[0-9]+}", petid.UpdateBreedHandler).Methods("PUT", "OPTIONS")
 	apiRouter.HandleFunc("/petid/species", petid.GetSpeciesHandler).Methods("GET", "OPTIONS")
 
+	// PetID Service endpoints (проксирование на PetBase Service)
+	if petbaseService != nil {
+		apiRouter.HandleFunc("/petid/pets", ProxyHandler(petbaseService)).Methods("GET", "POST", "OPTIONS")
+		apiRouter.HandleFunc("/petid/pets/{id:[0-9]+}", ProxyHandler(petbaseService)).Methods("GET", "PUT", "DELETE", "OPTIONS")
+	}
+
 	// Main Backend endpoints (общие маршруты)
 	// ВАЖНО: НЕ используем PathPrefix для /organizations, чтобы не конфликтовать с публичным GET
 	apiRouter.PathPrefix("/posts").Handler(ProxyHandler(mainService))

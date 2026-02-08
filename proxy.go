@@ -21,6 +21,11 @@ func ProxyHandler(service *Service) http.HandlerFunc {
 			targetPath = "/api/" + strings.TrimPrefix(targetPath, "/api/petbase/")
 		}
 
+		// Для petid убираем префикс /api/petid и оставляем /api/*
+		if strings.HasPrefix(targetPath, "/api/petid/") {
+			targetPath = "/api/" + strings.TrimPrefix(targetPath, "/api/petid/")
+		}
+
 		targetURL := service.URL + targetPath
 		if r.URL.RawQuery != "" {
 			targetURL += "?" + r.URL.RawQuery
