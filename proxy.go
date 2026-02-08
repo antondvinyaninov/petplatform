@@ -53,6 +53,12 @@ func ProxyHandler(service *Service) http.HandlerFunc {
 		proxyReq.Header.Set("X-Forwarded-Proto", "http")
 		proxyReq.Header.Set("X-Forwarded-Host", r.Host)
 
+		// Логируем заголовки для отладки
+		log.Printf("🔍 Proxy headers: Authorization=%s, Cookie=%s, X-User-ID=%s",
+			proxyReq.Header.Get("Authorization"),
+			proxyReq.Header.Get("Cookie"),
+			proxyReq.Header.Get("X-User-ID"))
+
 		// Выполняем запрос
 		client := &http.Client{
 			Timeout: 30 * time.Second,
