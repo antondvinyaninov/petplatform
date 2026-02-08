@@ -87,6 +87,7 @@ func SetupRouter() *mux.Router {
 
 	// PetID Database endpoints (прямой доступ к БД)
 	apiRouter.HandleFunc("/petid/breeds", petid.GetBreedsHandler).Methods("GET", "OPTIONS")
+	apiRouter.HandleFunc("/petid/breeds/{id:[0-9]+}", petid.UpdateBreedHandler).Methods("PUT", "OPTIONS")
 	apiRouter.HandleFunc("/petid/species", petid.GetSpeciesHandler).Methods("GET", "OPTIONS")
 
 	// Main Backend endpoints (общие маршруты)

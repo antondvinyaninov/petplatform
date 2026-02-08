@@ -3,9 +3,13 @@ package petid
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 type QueryRequest struct {
@@ -233,6 +237,108 @@ func GetBreedsHandler(w http.ResponseWriter, r *http.Request) {
 		"success": true,
 		"breeds":  breeds,
 		"count":   len(breeds),
+	})
+}
+
+// UpdateBreedHandler обновляет породу по ID
+func UpdateBreedHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+
+	// Получаем ID из URL
+	vars := mux.Vars(r)
+	breedID := vars["id"]
+
+	log.Printf("🔍 [PetID] Updating breed with ID: %s", breedID)
+
+	// Парсим тело запроса
+	var updateData map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&updateData); err != nil {
+		log.Printf("❌ [PetID] Failed to decode update request: %v", err)
+		respondError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Проверяем, что есть данные для обновления
+	if len(updateData) == 0 {
+		respondError(w, "No fields to update", http.StatusBadRequest)
+		return
+	}
+
+	// Строим динамический SQL запрос
+	updates := []string{}
+	args := []interface{}{}
+	argIndex := 1
+
+	// Разрешенные поля для обновления
+	allowedFields := map[string]bool{
+		"name":        true,
+		"species_id":  true,
+		"description": true,
+		"photo":       true,
+		"image":       true,
+		"picture":     true,
+	}
+
+	for field, value := range updateData {
+		if allowedFields[field] {
+			updates = append(updates, fmt.Sprintf("%s = $%d", field, argIndex))
+			args = append(args, value)
+			argIndex++
+		}
+	}
+
+	if len(updates) == 0 {
+		respondError(w, "No valid fields to update", http.StatusBadRequest)
+		return
+	}
+
+	// Добавляем ID в конец аргументов
+	args = append(args, breedID)
+
+	// Формируем запрос
+	query := fmt.Sprintf("UPDATE breeds SET %s WHERE id = $%d RETURNING id, name, species_id, description",
+		strings.Join(updates, ", "), argIndex)
+
+	log.Printf("🔍 [PetID] SQL Query: %s", query)
+	log.Printf("🔍 [PetID] SQL Args: %v", args)
+
+	// Выполняем запрос
+	var id int
+	var name string
+	var speciesID sql.NullInt64
+	var description sql.NullString
+
+	err := db.QueryRow(query, args...).Scan(&id, &name, &speciesID, &description)
+	if err == sql.ErrNoRows {
+		log.Printf("❌ [PetID] Breed not found: %s", breedID)
+		respondError(w, "Breed not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("❌ [PetID] Failed to update breed: %v", err)
+		respondError(w, "Failed to update breed", http.StatusInternalServerError)
+		return
+	}
+
+	// Формируем ответ
+	breed := map[string]interface{}{
+		"id":   id,
+		"name": name,
+	}
+	if speciesID.Valid {
+		breed["species_id"] = speciesID.Int64
+	}
+	if description.Valid {
+		breed["description"] = description.String
+	}
+
+	duration := time.Since(startTime)
+	log.Printf("✅ [PetID] Breed updated successfully (id=%d) in %v", id, duration)
+
+	respondJSON(w, map[string]interface{}{
+		"success": true,
+		"message": "Breed updated successfully",
+		"breed":   breed,
 	})
 }
 
