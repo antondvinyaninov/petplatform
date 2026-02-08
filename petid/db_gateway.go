@@ -174,10 +174,11 @@ func GetBreedsHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("🔍 [PetID] Fetching breeds from database")
 
-	// Выполняем запрос к базе данных
-	query := `SELECT id, name, species_id, description, created_at 
-	          FROM breeds 
-	          ORDER BY name ASC`
+	// Выполняем запрос к базе данных с JOIN
+	query := `SELECT breeds.*, species.name as species_name
+	          FROM breeds
+	          LEFT JOIN species ON breeds.species_id = species.id
+	          ORDER BY breeds.name`
 
 	rows, err := db.Query(query)
 	if err != nil {
@@ -187,31 +188,39 @@ func GetBreedsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
+	// Получаем названия колонок
+	columns, err := rows.Columns()
+	if err != nil {
+		log.Printf("❌ [PetID] Failed to get columns: %v", err)
+		respondError(w, "Failed to process results", http.StatusInternalServerError)
+		return
+	}
+
 	// Читаем результаты
 	var breeds []map[string]interface{}
 	for rows.Next() {
-		var id, speciesID int
-		var name, description sql.NullString
-		var createdAt sql.NullTime
+		// Создаем слайс для сканирования значений
+		values := make([]interface{}, len(columns))
+		valuePtrs := make([]interface{}, len(columns))
+		for i := range values {
+			valuePtrs[i] = &values[i]
+		}
 
-		if err := rows.Scan(&id, &name, &speciesID, &description, &createdAt); err != nil {
+		if err := rows.Scan(valuePtrs...); err != nil {
 			log.Printf("❌ [PetID] Failed to scan breed row: %v", err)
 			continue
 		}
 
-		breed := map[string]interface{}{
-			"id":         id,
-			"species_id": speciesID,
-		}
-
-		if name.Valid {
-			breed["name"] = name.String
-		}
-		if description.Valid {
-			breed["description"] = description.String
-		}
-		if createdAt.Valid {
-			breed["created_at"] = createdAt.Time
+		// Создаем map для строки
+		breed := make(map[string]interface{})
+		for i, col := range columns {
+			val := values[i]
+			// Конвертируем []byte в string
+			if b, ok := val.([]byte); ok {
+				breed[col] = string(b)
+			} else {
+				breed[col] = val
+			}
 		}
 
 		breeds = append(breeds, breed)
