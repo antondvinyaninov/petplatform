@@ -92,13 +92,14 @@ func SetupRouter() *mux.Router {
 	apiRouter.HandleFunc("/petid/breeds/{id:[0-9]+}", petid.DeleteBreedHandler).Methods("DELETE", "OPTIONS")
 	apiRouter.HandleFunc("/petid/species", petid.GetSpeciesHandler).Methods("GET", "OPTIONS")
 	apiRouter.HandleFunc("/petid/pets", petid.GetPetsHandler).Methods("GET", "OPTIONS")
+	apiRouter.HandleFunc("/petid/pets", petid.CreatePetHandler).Methods("POST", "OPTIONS")
+	apiRouter.HandleFunc("/petid/pets/{id:[0-9]+}", petid.UpdatePetHandler).Methods("PUT", "OPTIONS")
+	apiRouter.HandleFunc("/petid/pets/{id:[0-9]+}", petid.DeletePetHandler).Methods("DELETE", "OPTIONS")
 
-	// PetID Service endpoints (проксирование на PetBase Service)
-	if petbaseService != nil {
-		// Pets - только POST/PUT/DELETE проксируются
-		apiRouter.HandleFunc("/petid/pets", ProxyHandler(petbaseService)).Methods("POST", "OPTIONS")
-		apiRouter.HandleFunc("/petid/pets/{id:[0-9]+}", ProxyHandler(petbaseService)).Methods("GET", "PUT", "DELETE", "OPTIONS")
-	}
+	// PetID Service endpoints (проксирование на PetBase Service) - ОТКЛЮЧЕНО, используем прямой доступ к БД
+	// if petbaseService != nil {
+	// 	apiRouter.HandleFunc("/petid/pets/{id:[0-9]+}", ProxyHandler(petbaseService)).Methods("GET", "OPTIONS")
+	// }
 
 	// Main Backend endpoints (общие маршруты)
 	// ВАЖНО: НЕ используем PathPrefix для /organizations, чтобы не конфликтовать с публичным GET
