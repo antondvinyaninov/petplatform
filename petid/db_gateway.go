@@ -566,3 +566,181 @@ func GetSpeciesHandler(w http.ResponseWriter, r *http.Request) {
 		"count":   len(speciesList),
 	})
 }
+
+// GetPetsHandler возвращает список питомцев с информацией о владельцах, породах и видах
+func GetPetsHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+
+	// Получаем query параметры
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+	speciesIDStr := r.URL.Query().Get("species_id")
+	userIDStr := r.URL.Query().Get("user_id")
+
+	// Устанавливаем значения по умолчанию
+	limit := 100
+	offset := 0
+
+	// Парсим limit
+	if limitStr != "" {
+		if _, err := fmt.Sscanf(limitStr, "%d", &limit); err != nil {
+			respondError(w, "Invalid limit parameter", http.StatusBadRequest)
+			return
+		}
+	}
+
+	// Парсим offset
+	if offsetStr != "" {
+		if _, err := fmt.Sscanf(offsetStr, "%d", &offset); err != nil {
+			respondError(w, "Invalid offset parameter", http.StatusBadRequest)
+			return
+		}
+	}
+
+	log.Printf("🔍 [PetID] Fetching pets: limit=%d, offset=%d, species_id=%s, user_id=%s",
+		limit, offset, speciesIDStr, userIDStr)
+
+	// Строим SQL запрос с фильтрами
+	query := `
+		SELECT 
+			p.id,
+			p.name,
+			p.birth_date,
+			p.gender,
+			p.created_at,
+			s.name as species_name,
+			s.id as species_id,
+			b.name as breed_name,
+			b.id as breed_id,
+			u.name as owner_name,
+			u.id as owner_id
+		FROM pets p
+		LEFT JOIN species s ON p.species_id = s.id
+		LEFT JOIN breeds b ON p.breed_id = b.id
+		LEFT JOIN users u ON p.user_id = u.id
+		WHERE 1=1`
+
+	args := []interface{}{}
+	argIndex := 1
+
+	// Добавляем фильтр по species_id
+	if speciesIDStr != "" {
+		query += fmt.Sprintf(" AND p.species_id = $%d", argIndex)
+		args = append(args, speciesIDStr)
+		argIndex++
+	}
+
+	// Добавляем фильтр по user_id
+	if userIDStr != "" {
+		query += fmt.Sprintf(" AND p.user_id = $%d", argIndex)
+		args = append(args, userIDStr)
+		argIndex++
+	}
+
+	// Добавляем сортировку и пагинацию
+	query += fmt.Sprintf(" ORDER BY p.id DESC LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
+	args = append(args, limit, offset)
+
+	log.Printf("🔍 [PetID] SQL Query: %s", query)
+	log.Printf("🔍 [PetID] SQL Args: %v", args)
+
+	// Выполняем запрос
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		log.Printf("❌ [PetID] Failed to fetch pets: %v", err)
+		respondError(w, "Failed to fetch pets", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	// Читаем результаты
+	var pets []map[string]interface{}
+	for rows.Next() {
+		var id int
+		var name string
+		var birthDate sql.NullTime
+		var gender sql.NullString
+		var createdAt time.Time
+		var speciesName sql.NullString
+		var speciesID sql.NullInt64
+		var breedName sql.NullString
+		var breedID sql.NullInt64
+		var ownerName sql.NullString
+		var ownerID sql.NullInt64
+
+		err := rows.Scan(
+			&id, &name, &birthDate, &gender, &createdAt,
+			&speciesName, &speciesID, &breedName, &breedID,
+			&ownerName, &ownerID,
+		)
+		if err != nil {
+			log.Printf("❌ [PetID] Failed to scan pet row: %v", err)
+			continue
+		}
+
+		pet := map[string]interface{}{
+			"id":         id,
+			"name":       name,
+			"created_at": createdAt,
+		}
+
+		if birthDate.Valid {
+			pet["birth_date"] = birthDate.Time
+		}
+		if gender.Valid {
+			pet["gender"] = gender.String
+		}
+		if speciesName.Valid {
+			pet["species_name"] = speciesName.String
+		}
+		if speciesID.Valid {
+			pet["species_id"] = speciesID.Int64
+		}
+		if breedName.Valid {
+			pet["breed_name"] = breedName.String
+		}
+		if breedID.Valid {
+			pet["breed_id"] = breedID.Int64
+		}
+		if ownerName.Valid {
+			pet["owner_name"] = ownerName.String
+		}
+		if ownerID.Valid {
+			pet["owner_id"] = ownerID.Int64
+		}
+
+		pets = append(pets, pet)
+	}
+
+	// Получаем общее количество питомцев (для пагинации)
+	countQuery := "SELECT COUNT(*) FROM pets WHERE 1=1"
+	countArgs := []interface{}{}
+	countArgIndex := 1
+
+	if speciesIDStr != "" {
+		countQuery += fmt.Sprintf(" AND species_id = $%d", countArgIndex)
+		countArgs = append(countArgs, speciesIDStr)
+		countArgIndex++
+	}
+
+	if userIDStr != "" {
+		countQuery += fmt.Sprintf(" AND user_id = $%d", countArgIndex)
+		countArgs = append(countArgs, userIDStr)
+	}
+
+	var total int
+	err = db.QueryRow(countQuery, countArgs...).Scan(&total)
+	if err != nil {
+		log.Printf("⚠️  [PetID] Failed to get total count: %v", err)
+		total = len(pets)
+	}
+
+	duration := time.Since(startTime)
+	log.Printf("✅ [PetID] Fetched %d pets (total: %d) in %v", len(pets), total, duration)
+
+	respondJSON(w, map[string]interface{}{
+		"success": true,
+		"pets":    pets,
+		"total":   total,
+	})
+}
