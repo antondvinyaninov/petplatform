@@ -868,42 +868,44 @@ func CreatePetHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("🔍 [PetID] Creating pet: name=%s, species_id=%d, breed_id=%v, gender=%s, relationship=%s",
 		req.Name, req.SpeciesID, req.BreedID, req.Gender, relationship)
 
-	// Проверяем, что species_id существует
-	var speciesExists bool
-	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM species WHERE id = $1)", req.SpeciesID).Scan(&speciesExists)
-	if err != nil {
-		log.Printf("❌ [PetID] Failed to check species existence: %v", err)
-		respondError(w, "Database error", http.StatusInternalServerError)
-		return
-	}
-	if !speciesExists {
+	// Проверяем, что species_id существует и получаем название
+	var speciesName string
+	err := db.QueryRow("SELECT name FROM species WHERE id = $1", req.SpeciesID).Scan(&speciesName)
+	if err == sql.ErrNoRows {
 		log.Printf("❌ [PetID] Species not found: id=%d", req.SpeciesID)
 		respondError(w, "Species not found", http.StatusBadRequest)
 		return
 	}
+	if err != nil {
+		log.Printf("❌ [PetID] Failed to fetch species: %v", err)
+		respondError(w, "Database error", http.StatusInternalServerError)
+		return
+	}
 
-	// Проверяем, что breed_id существует (если указан)
+	// Проверяем, что breed_id существует и получаем название (если указан)
+	var breedName sql.NullString
 	if req.BreedID != nil {
-		var breedExists bool
-		err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM breeds WHERE id = $1)", *req.BreedID).Scan(&breedExists)
-		if err != nil {
-			log.Printf("❌ [PetID] Failed to check breed existence: %v", err)
-			respondError(w, "Database error", http.StatusInternalServerError)
-			return
-		}
-		if !breedExists {
+		var name string
+		err := db.QueryRow("SELECT name FROM breeds WHERE id = $1", *req.BreedID).Scan(&name)
+		if err == sql.ErrNoRows {
 			log.Printf("❌ [PetID] Breed not found: id=%d", *req.BreedID)
 			respondError(w, "Breed not found", http.StatusBadRequest)
 			return
 		}
+		if err != nil {
+			log.Printf("❌ [PetID] Failed to fetch breed: %v", err)
+			respondError(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+		breedName = sql.NullString{String: name, Valid: true}
 	}
 
-	// Вставляем нового питомца
+	// Вставляем нового питомца (заполняем и species_id, и species для обратной совместимости)
 	query := `INSERT INTO pets (
-		name, species_id, breed_id, user_id, birth_date, 
+		name, species_id, species, breed_id, breed, user_id, birth_date, 
 		age_type, approximate_years, approximate_months,
 		gender, description, relationship, created_at
-	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
 	RETURNING id, name, species_id, breed_id, user_id, birth_date,
 	          age_type, approximate_years, approximate_months,
 	          gender, description, relationship, created_at`
@@ -923,7 +925,7 @@ func CreatePetHandler(w http.ResponseWriter, r *http.Request) {
 	var createdAt time.Time
 
 	err = db.QueryRow(query,
-		req.Name, req.SpeciesID, req.BreedID, userID, req.BirthDate,
+		req.Name, req.SpeciesID, speciesName, req.BreedID, breedName, userID, req.BirthDate,
 		ageType, approximateYears, approximateMonths,
 		req.Gender, req.Description, relationship,
 	).Scan(
@@ -938,20 +940,14 @@ func CreatePetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Получаем дополнительную информацию (species_name, breed_name, owner_name)
-	detailQuery := `
-		SELECT 
-			s.name as species_name,
-			b.name as breed_name,
-			u.name as owner_name
+	// Получаем дополнительную информацию (owner_name)
+	detailQuery := `SELECT u.name as owner_name
 		FROM pets p
-		LEFT JOIN species s ON p.species_id = s.id
-		LEFT JOIN breeds b ON p.breed_id = b.id
 		LEFT JOIN users u ON p.user_id = u.id
 		WHERE p.id = $1`
 
-	var speciesName, breedName, ownerName sql.NullString
-	err = db.QueryRow(detailQuery, id).Scan(&speciesName, &breedName, &ownerName)
+	var ownerName sql.NullString
+	err = db.QueryRow(detailQuery, id).Scan(&ownerName)
 	if err != nil {
 		log.Printf("⚠️  [PetID] Failed to fetch pet details: %v", err)
 	}
@@ -961,6 +957,7 @@ func CreatePetHandler(w http.ResponseWriter, r *http.Request) {
 		"id":                 id,
 		"name":               name,
 		"species_id":         speciesID,
+		"species_name":       speciesName, // Уже получили выше
 		"gender":             gender,
 		"owner_id":           returnedUserID,
 		"age_type":           returnedAgeType,
@@ -970,9 +967,6 @@ func CreatePetHandler(w http.ResponseWriter, r *http.Request) {
 		"created_at":         createdAt,
 	}
 
-	if speciesName.Valid {
-		pet["species_name"] = speciesName.String
-	}
 	if breedID.Valid {
 		pet["breed_id"] = breedID.Int64
 	}
@@ -1061,38 +1055,6 @@ func UpdatePetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Проверяем, что species_id существует (если указан)
-	if req.SpeciesID != nil {
-		var speciesExists bool
-		err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM species WHERE id = $1)", *req.SpeciesID).Scan(&speciesExists)
-		if err != nil {
-			log.Printf("❌ [PetID] Failed to check species existence: %v", err)
-			respondError(w, "Database error", http.StatusInternalServerError)
-			return
-		}
-		if !speciesExists {
-			log.Printf("❌ [PetID] Species not found: id=%d", *req.SpeciesID)
-			respondError(w, "Species not found", http.StatusBadRequest)
-			return
-		}
-	}
-
-	// Проверяем, что breed_id существует (если указан)
-	if req.BreedID != nil {
-		var breedExists bool
-		err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM breeds WHERE id = $1)", *req.BreedID).Scan(&breedExists)
-		if err != nil {
-			log.Printf("❌ [PetID] Failed to check breed existence: %v", err)
-			respondError(w, "Database error", http.StatusInternalServerError)
-			return
-		}
-		if !breedExists {
-			log.Printf("❌ [PetID] Breed not found: id=%d", *req.BreedID)
-			respondError(w, "Breed not found", http.StatusBadRequest)
-			return
-		}
-	}
-
 	// Строим динамический SQL запрос
 	updates := []string{}
 	args := []interface{}{}
@@ -1104,13 +1066,45 @@ func UpdatePetHandler(w http.ResponseWriter, r *http.Request) {
 		argIndex++
 	}
 	if req.SpeciesID != nil {
+		// Получаем название вида
+		var speciesName string
+		err := db.QueryRow("SELECT name FROM species WHERE id = $1", *req.SpeciesID).Scan(&speciesName)
+		if err == sql.ErrNoRows {
+			log.Printf("❌ [PetID] Species not found: id=%d", *req.SpeciesID)
+			respondError(w, "Species not found", http.StatusBadRequest)
+			return
+		}
+		if err != nil {
+			log.Printf("❌ [PetID] Failed to fetch species: %v", err)
+			respondError(w, "Database error", http.StatusInternalServerError)
+			return
+		}
 		updates = append(updates, fmt.Sprintf("species_id = $%d", argIndex))
 		args = append(args, *req.SpeciesID)
 		argIndex++
+		updates = append(updates, fmt.Sprintf("species = $%d", argIndex))
+		args = append(args, speciesName)
+		argIndex++
 	}
 	if req.BreedID != nil {
+		// Получаем название породы
+		var breedName string
+		err := db.QueryRow("SELECT name FROM breeds WHERE id = $1", *req.BreedID).Scan(&breedName)
+		if err == sql.ErrNoRows {
+			log.Printf("❌ [PetID] Breed not found: id=%d", *req.BreedID)
+			respondError(w, "Breed not found", http.StatusBadRequest)
+			return
+		}
+		if err != nil {
+			log.Printf("❌ [PetID] Failed to fetch breed: %v", err)
+			respondError(w, "Database error", http.StatusInternalServerError)
+			return
+		}
 		updates = append(updates, fmt.Sprintf("breed_id = $%d", argIndex))
 		args = append(args, *req.BreedID)
+		argIndex++
+		updates = append(updates, fmt.Sprintf("breed = $%d", argIndex))
+		args = append(args, breedName)
 		argIndex++
 	}
 	if req.BirthDate != nil {
