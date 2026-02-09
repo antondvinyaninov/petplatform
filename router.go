@@ -93,6 +93,7 @@ func SetupRouter() *mux.Router {
 	apiRouter.HandleFunc("/petid/species", petid.GetSpeciesHandler).Methods("GET", "OPTIONS")
 	apiRouter.HandleFunc("/petid/pets", petid.GetPetsHandler).Methods("GET", "OPTIONS")
 	apiRouter.HandleFunc("/petid/pets", petid.CreatePetHandler).Methods("POST", "OPTIONS")
+	apiRouter.HandleFunc("/petid/pets/{id:[0-9]+}", petid.GetPetByIDHandler).Methods("GET", "OPTIONS")
 	apiRouter.HandleFunc("/petid/pets/{id:[0-9]+}", petid.UpdatePetHandler).Methods("PUT", "OPTIONS")
 	apiRouter.HandleFunc("/petid/pets/{id:[0-9]+}", petid.DeletePetHandler).Methods("DELETE", "OPTIONS")
 

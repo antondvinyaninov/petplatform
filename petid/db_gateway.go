@@ -1313,3 +1313,129 @@ func DeletePetHandler(w http.ResponseWriter, r *http.Request) {
 		"message": "Питомец удален",
 	})
 }
+
+// GetPetByIDHandler возвращает одного питомца по ID
+func GetPetByIDHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+
+	// Получаем ID питомца из URL
+	vars := mux.Vars(r)
+	petID := vars["id"]
+
+	log.Printf("🔍 [PetID] Fetching pet by id=%s", petID)
+
+	// Выполняем SQL запрос с JOIN
+	query := `
+		SELECT 
+			p.id,
+			p.name,
+			p.birth_date,
+			p.age_type,
+			p.approximate_years,
+			p.approximate_months,
+			p.gender,
+			p.description,
+			p.relationship,
+			p.created_at,
+			s.name as species_name,
+			s.id as species_id,
+			b.name as breed_name,
+			b.id as breed_id,
+			u.name as owner_name,
+			u.id as owner_id
+		FROM pets p
+		LEFT JOIN species s ON p.species_id = s.id
+		LEFT JOIN breeds b ON p.breed_id = b.id
+		LEFT JOIN users u ON p.user_id = u.id
+		WHERE p.id = $1`
+
+	var id int
+	var name string
+	var birthDate sql.NullTime
+	var ageType sql.NullString
+	var approximateYears sql.NullInt64
+	var approximateMonths sql.NullInt64
+	var gender sql.NullString
+	var description sql.NullString
+	var relationship sql.NullString
+	var createdAt time.Time
+	var speciesName sql.NullString
+	var speciesID sql.NullInt64
+	var breedName sql.NullString
+	var breedID sql.NullInt64
+	var ownerName sql.NullString
+	var ownerID sql.NullInt64
+
+	err := db.QueryRow(query, petID).Scan(
+		&id, &name, &birthDate, &ageType, &approximateYears, &approximateMonths,
+		&gender, &description, &relationship, &createdAt,
+		&speciesName, &speciesID, &breedName, &breedID,
+		&ownerName, &ownerID,
+	)
+
+	if err == sql.ErrNoRows {
+		log.Printf("❌ [PetID] Pet not found: id=%s", petID)
+		respondError(w, "Питомец не найден", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("❌ [PetID] Failed to fetch pet: %v", err)
+		respondError(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	// Формируем ответ
+	pet := map[string]interface{}{
+		"id":         id,
+		"name":       name,
+		"created_at": createdAt,
+	}
+
+	if birthDate.Valid {
+		pet["birth_date"] = birthDate.Time
+	}
+	if ageType.Valid {
+		pet["age_type"] = ageType.String
+	}
+	if approximateYears.Valid {
+		pet["approximate_years"] = approximateYears.Int64
+	}
+	if approximateMonths.Valid {
+		pet["approximate_months"] = approximateMonths.Int64
+	}
+	if gender.Valid {
+		pet["gender"] = gender.String
+	}
+	if description.Valid {
+		pet["description"] = description.String
+	}
+	if relationship.Valid {
+		pet["relationship"] = relationship.String
+	}
+	if speciesName.Valid {
+		pet["species_name"] = speciesName.String
+	}
+	if speciesID.Valid {
+		pet["species_id"] = speciesID.Int64
+	}
+	if breedName.Valid {
+		pet["breed_name"] = breedName.String
+	}
+	if breedID.Valid {
+		pet["breed_id"] = breedID.Int64
+	}
+	if ownerName.Valid {
+		pet["owner_name"] = ownerName.String
+	}
+	if ownerID.Valid {
+		pet["owner_id"] = ownerID.Int64
+	}
+
+	duration := time.Since(startTime)
+	log.Printf("✅ [PetID] Fetched pet (id=%d, name=%s) in %v", id, name, duration)
+
+	respondJSON(w, map[string]interface{}{
+		"success": true,
+		"pet":     pet,
+	})
+}
