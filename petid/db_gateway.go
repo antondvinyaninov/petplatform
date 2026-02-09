@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"reflect"
 	"strings"
 	"time"
 
@@ -748,11 +749,27 @@ func CreatePetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Извлекаем user_id из контекста
-	type User struct {
-		ID int `json:"id"`
+	// Используем type assertion к структуре с полем ID
+	var userID int
+	switch v := contextUser.(type) {
+	case interface{ GetID() int }:
+		userID = v.GetID()
+	default:
+		// Используем рефлексию для получения поля ID
+		val := reflect.ValueOf(contextUser)
+		if val.Kind() == reflect.Ptr {
+			val = val.Elem()
+		}
+		if idField := val.FieldByName("ID"); idField.IsValid() && idField.CanInt() {
+			userID = int(idField.Int())
+		}
 	}
-	user := contextUser.(*User)
-	userID := user.ID
+
+	if userID == 0 {
+		log.Printf("❌ [PetID] Failed to extract user_id from context")
+		respondError(w, "Invalid user context", http.StatusUnauthorized)
+		return
+	}
 
 	log.Printf("🔍 [PetID] Creating new pet for user_id=%d", userID)
 
@@ -901,11 +918,21 @@ func UpdatePetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type User struct {
-		ID int `json:"id"`
+	// Извлекаем user_id из контекста
+	var userID int
+	val := reflect.ValueOf(contextUser)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
 	}
-	user := contextUser.(*User)
-	userID := user.ID
+	if idField := val.FieldByName("ID"); idField.IsValid() && idField.CanInt() {
+		userID = int(idField.Int())
+	}
+
+	if userID == 0 {
+		log.Printf("❌ [PetID] Failed to extract user_id from context")
+		respondError(w, "Invalid user context", http.StatusUnauthorized)
+		return
+	}
 
 	// Получаем ID питомца из URL
 	vars := mux.Vars(r)
@@ -1094,11 +1121,21 @@ func DeletePetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type User struct {
-		ID int `json:"id"`
+	// Извлекаем user_id из контекста
+	var userID int
+	val := reflect.ValueOf(contextUser)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
 	}
-	user := contextUser.(*User)
-	userID := user.ID
+	if idField := val.FieldByName("ID"); idField.IsValid() && idField.CanInt() {
+		userID = int(idField.Int())
+	}
+
+	if userID == 0 {
+		log.Printf("❌ [PetID] Failed to extract user_id from context")
+		respondError(w, "Invalid user context", http.StatusUnauthorized)
+		return
+	}
 
 	// Получаем ID питомца из URL
 	vars := mux.Vars(r)
