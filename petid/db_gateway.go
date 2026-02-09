@@ -343,6 +343,105 @@ func UpdateBreedHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// CreateBreedHandler создает новую породу
+func CreateBreedHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+
+	log.Printf("🔍 [PetID] Creating new breed")
+
+	// Парсим тело запроса
+	var req struct {
+		Name        string  `json:"name"`
+		SpeciesID   int     `json:"species_id"`
+		Description *string `json:"description"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("❌ [PetID] Failed to decode create breed request: %v", err)
+		respondError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Валидация
+	if req.Name == "" {
+		respondError(w, "Name is required", http.StatusBadRequest)
+		return
+	}
+	if req.SpeciesID == 0 {
+		respondError(w, "Species ID is required", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("🔍 [PetID] Creating breed: name=%s, species_id=%d", req.Name, req.SpeciesID)
+
+	// Проверяем, что species_id существует
+	var speciesExists bool
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM species WHERE id = $1)", req.SpeciesID).Scan(&speciesExists)
+	if err != nil {
+		log.Printf("❌ [PetID] Failed to check species existence: %v", err)
+		respondError(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+	if !speciesExists {
+		log.Printf("❌ [PetID] Species not found: id=%d", req.SpeciesID)
+		respondError(w, "Species not found", http.StatusBadRequest)
+		return
+	}
+
+	// Вставляем новую породу
+	query := `INSERT INTO breeds (name, species_id, description, created_at)
+	          VALUES ($1, $2, $3, NOW())
+	          RETURNING id, name, species_id, description, created_at`
+
+	var id int
+	var name string
+	var speciesID int
+	var description sql.NullString
+	var createdAt time.Time
+
+	err = db.QueryRow(query, req.Name, req.SpeciesID, req.Description).
+		Scan(&id, &name, &speciesID, &description, &createdAt)
+
+	if err != nil {
+		log.Printf("❌ [PetID] Failed to create breed: %v", err)
+		// Проверяем на дубликат
+		if strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "unique") {
+			respondError(w, "Breed with this name already exists", http.StatusConflict)
+			return
+		}
+		respondError(w, "Failed to create breed", http.StatusInternalServerError)
+		return
+	}
+
+	// Получаем название вида
+	var speciesName string
+	err = db.QueryRow("SELECT name FROM species WHERE id = $1", speciesID).Scan(&speciesName)
+	if err != nil {
+		log.Printf("⚠️  [PetID] Failed to fetch species name: %v", err)
+		speciesName = ""
+	}
+
+	// Формируем ответ
+	breed := map[string]interface{}{
+		"id":         id,
+		"name":       name,
+		"species_id": speciesID,
+		"species":    speciesName,
+		"created_at": createdAt,
+	}
+	if description.Valid {
+		breed["description"] = description.String
+	}
+
+	duration := time.Since(startTime)
+	log.Printf("✅ [PetID] Breed created successfully (id=%d, name=%s) in %v", id, name, duration)
+
+	respondJSON(w, map[string]interface{}{
+		"success": true,
+		"breed":   breed,
+	})
+}
+
 // GetSpeciesHandler возвращает список видов животных
 func GetSpeciesHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
