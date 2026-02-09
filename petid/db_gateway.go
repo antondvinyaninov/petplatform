@@ -648,13 +648,15 @@ func GetPetsHandler(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query(query, args...)
 	if err != nil {
 		log.Printf("❌ [PetID] Failed to fetch pets: %v", err)
-		respondError(w, "Failed to fetch pets", http.StatusInternalServerError)
+		log.Printf("❌ [PetID] Query: %s", query)
+		log.Printf("❌ [PetID] Args: %v", args)
+		respondError(w, fmt.Sprintf("Failed to fetch pets: %v", err), http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
 
-	// Читаем результаты
-	var pets []map[string]interface{}
+	// Инициализируем пустой массив (чтобы вернуть [] вместо null)
+	pets := make([]map[string]interface{}, 0)
 	for rows.Next() {
 		var id int
 		var name string
