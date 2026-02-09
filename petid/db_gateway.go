@@ -240,6 +240,42 @@ func GetBreedsHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// DeleteBreedHandler удаляет породу по ID
+func DeleteBreedHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+
+	// Получаем ID из URL
+	vars := mux.Vars(r)
+	breedID := vars["id"]
+
+	log.Printf("🔍 [PetID] Deleting breed with ID: %s", breedID)
+
+	// Удаляем породу
+	query := `DELETE FROM breeds WHERE id = $1 RETURNING id`
+
+	var deletedID int
+	err := db.QueryRow(query, breedID).Scan(&deletedID)
+
+	if err == sql.ErrNoRows {
+		log.Printf("❌ [PetID] Breed not found: %s", breedID)
+		respondError(w, "Порода не найдена", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("❌ [PetID] Failed to delete breed: %v", err)
+		respondError(w, "Failed to delete breed", http.StatusInternalServerError)
+		return
+	}
+
+	duration := time.Since(startTime)
+	log.Printf("✅ [PetID] Breed deleted successfully (id=%d) in %v", deletedID, duration)
+
+	respondJSON(w, map[string]interface{}{
+		"success": true,
+		"message": "Порода удалена",
+	})
+}
+
 // UpdateBreedHandler обновляет породу по ID
 func UpdateBreedHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
@@ -251,17 +287,38 @@ func UpdateBreedHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("🔍 [PetID] Updating breed with ID: %s", breedID)
 
 	// Парсим тело запроса
-	var updateData map[string]interface{}
-	if err := json.NewDecoder(r.Body).Decode(&updateData); err != nil {
+	var req struct {
+		Name        *string `json:"name"`
+		SpeciesID   *int    `json:"species_id"`
+		Description *string `json:"description"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("❌ [PetID] Failed to decode update request: %v", err)
 		respondError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// Проверяем, что есть данные для обновления
-	if len(updateData) == 0 {
-		respondError(w, "No fields to update", http.StatusBadRequest)
+	// Валидация
+	if req.Name != nil && *req.Name == "" {
+		respondError(w, "Name cannot be empty", http.StatusBadRequest)
 		return
+	}
+
+	// Проверяем, что species_id существует (если передан)
+	if req.SpeciesID != nil {
+		var speciesExists bool
+		err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM species WHERE id = $1)", *req.SpeciesID).Scan(&speciesExists)
+		if err != nil {
+			log.Printf("❌ [PetID] Failed to check species existence: %v", err)
+			respondError(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+		if !speciesExists {
+			log.Printf("❌ [PetID] Species not found: id=%d", *req.SpeciesID)
+			respondError(w, "Species not found", http.StatusBadRequest)
+			return
+		}
 	}
 
 	// Строим динамический SQL запрос
@@ -269,24 +326,24 @@ func UpdateBreedHandler(w http.ResponseWriter, r *http.Request) {
 	args := []interface{}{}
 	argIndex := 1
 
-	// Разрешенные поля для обновления
-	allowedFields := map[string]bool{
-		"name":        true,
-		"species_id":  true,
-		"description": true,
-		"image_url":   true,
+	if req.Name != nil {
+		updates = append(updates, fmt.Sprintf("name = $%d", argIndex))
+		args = append(args, *req.Name)
+		argIndex++
 	}
-
-	for field, value := range updateData {
-		if allowedFields[field] {
-			updates = append(updates, fmt.Sprintf("%s = $%d", field, argIndex))
-			args = append(args, value)
-			argIndex++
-		}
+	if req.SpeciesID != nil {
+		updates = append(updates, fmt.Sprintf("species_id = $%d", argIndex))
+		args = append(args, *req.SpeciesID)
+		argIndex++
+	}
+	if req.Description != nil {
+		updates = append(updates, fmt.Sprintf("description = $%d", argIndex))
+		args = append(args, *req.Description)
+		argIndex++
 	}
 
 	if len(updates) == 0 {
-		respondError(w, "No valid fields to update", http.StatusBadRequest)
+		respondError(w, "No fields to update", http.StatusBadRequest)
 		return
 	}
 
@@ -294,7 +351,7 @@ func UpdateBreedHandler(w http.ResponseWriter, r *http.Request) {
 	args = append(args, breedID)
 
 	// Формируем запрос
-	query := fmt.Sprintf("UPDATE breeds SET %s WHERE id = $%d RETURNING id, name, species_id, description, image_url",
+	query := fmt.Sprintf("UPDATE breeds SET %s WHERE id = $%d RETURNING id, name, species_id, description, created_at",
 		strings.Join(updates, ", "), argIndex)
 
 	log.Printf("🔍 [PetID] SQL Query: %s", query)
@@ -303,34 +360,45 @@ func UpdateBreedHandler(w http.ResponseWriter, r *http.Request) {
 	// Выполняем запрос
 	var id int
 	var name string
-	var speciesID sql.NullInt64
-	var description, imageURL sql.NullString
+	var speciesID int
+	var description sql.NullString
+	var createdAt time.Time
 
-	err := db.QueryRow(query, args...).Scan(&id, &name, &speciesID, &description, &imageURL)
+	err := db.QueryRow(query, args...).Scan(&id, &name, &speciesID, &description, &createdAt)
 	if err == sql.ErrNoRows {
 		log.Printf("❌ [PetID] Breed not found: %s", breedID)
-		respondError(w, "Breed not found", http.StatusNotFound)
+		respondError(w, "Порода не найдена", http.StatusNotFound)
 		return
 	}
 	if err != nil {
 		log.Printf("❌ [PetID] Failed to update breed: %v", err)
+		// Проверяем на дубликат
+		if strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "unique") {
+			respondError(w, "Breed with this name already exists", http.StatusConflict)
+			return
+		}
 		respondError(w, "Failed to update breed", http.StatusInternalServerError)
 		return
 	}
 
+	// Получаем название вида
+	var speciesName string
+	err = db.QueryRow("SELECT name FROM species WHERE id = $1", speciesID).Scan(&speciesName)
+	if err != nil {
+		log.Printf("⚠️  [PetID] Failed to fetch species name: %v", err)
+		speciesName = ""
+	}
+
 	// Формируем ответ
 	breed := map[string]interface{}{
-		"id":   id,
-		"name": name,
-	}
-	if speciesID.Valid {
-		breed["species_id"] = speciesID.Int64
+		"id":         id,
+		"name":       name,
+		"species_id": speciesID,
+		"species":    speciesName,
+		"created_at": createdAt,
 	}
 	if description.Valid {
 		breed["description"] = description.String
-	}
-	if imageURL.Valid {
-		breed["image_url"] = imageURL.String
 	}
 
 	duration := time.Since(startTime)
@@ -338,7 +406,6 @@ func UpdateBreedHandler(w http.ResponseWriter, r *http.Request) {
 
 	respondJSON(w, map[string]interface{}{
 		"success": true,
-		"message": "Breed updated successfully",
 		"breed":   breed,
 	})
 }

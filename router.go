@@ -89,6 +89,7 @@ func SetupRouter() *mux.Router {
 	apiRouter.HandleFunc("/petid/breeds", petid.GetBreedsHandler).Methods("GET", "OPTIONS")
 	apiRouter.HandleFunc("/petid/breeds", petid.CreateBreedHandler).Methods("POST", "OPTIONS")
 	apiRouter.HandleFunc("/petid/breeds/{id:[0-9]+}", petid.UpdateBreedHandler).Methods("PUT", "OPTIONS")
+	apiRouter.HandleFunc("/petid/breeds/{id:[0-9]+}", petid.DeleteBreedHandler).Methods("DELETE", "OPTIONS")
 	apiRouter.HandleFunc("/petid/species", petid.GetSpeciesHandler).Methods("GET", "OPTIONS")
 
 	// PetID Service endpoints (проксирование на PetBase Service)
