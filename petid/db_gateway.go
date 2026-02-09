@@ -601,31 +601,28 @@ func GetPetsHandler(w http.ResponseWriter, r *http.Request) {
 		limit, offset, speciesIDStr, userIDStr)
 
 	// Строим SQL запрос с фильтрами
+	// ВАЖНО: Таблица pets использует текстовые поля species и breed вместо ID
 	query := `
 		SELECT 
 			p.id,
 			p.name,
-			p.birth_date,
-			p.gender,
 			p.created_at,
-			s.name as species_name,
-			s.id as species_id,
-			b.name as breed_name,
-			b.id as breed_id,
+			p.gender,
+			p.species,
+			p.breed,
+			p.age,
 			u.name as owner_name,
 			u.id as owner_id
 		FROM pets p
-		LEFT JOIN species s ON p.species_id = s.id
-		LEFT JOIN breeds b ON p.breed_id = b.id
 		LEFT JOIN users u ON p.user_id = u.id
 		WHERE 1=1`
 
 	args := []interface{}{}
 	argIndex := 1
 
-	// Добавляем фильтр по species_id
+	// Добавляем фильтр по species (текстовое поле)
 	if speciesIDStr != "" {
-		query += fmt.Sprintf(" AND p.species_id = $%d", argIndex)
+		query += fmt.Sprintf(" AND p.species = $%d", argIndex)
 		args = append(args, speciesIDStr)
 		argIndex++
 	}
@@ -660,19 +657,17 @@ func GetPetsHandler(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var id int
 		var name string
-		var birthDate sql.NullTime
-		var gender sql.NullString
 		var createdAt time.Time
-		var speciesName sql.NullString
-		var speciesID sql.NullInt64
-		var breedName sql.NullString
-		var breedID sql.NullInt64
+		var gender sql.NullString
+		var species sql.NullString
+		var breed sql.NullString
+		var age sql.NullInt64
 		var ownerName sql.NullString
 		var ownerID sql.NullInt64
 
 		err := rows.Scan(
-			&id, &name, &birthDate, &gender, &createdAt,
-			&speciesName, &speciesID, &breedName, &breedID,
+			&id, &name, &createdAt, &gender,
+			&species, &breed, &age,
 			&ownerName, &ownerID,
 		)
 		if err != nil {
@@ -686,23 +681,17 @@ func GetPetsHandler(w http.ResponseWriter, r *http.Request) {
 			"created_at": createdAt,
 		}
 
-		if birthDate.Valid {
-			pet["birth_date"] = birthDate.Time
-		}
 		if gender.Valid {
 			pet["gender"] = gender.String
 		}
-		if speciesName.Valid {
-			pet["species_name"] = speciesName.String
+		if species.Valid {
+			pet["species"] = species.String
 		}
-		if speciesID.Valid {
-			pet["species_id"] = speciesID.Int64
+		if breed.Valid {
+			pet["breed"] = breed.String
 		}
-		if breedName.Valid {
-			pet["breed_name"] = breedName.String
-		}
-		if breedID.Valid {
-			pet["breed_id"] = breedID.Int64
+		if age.Valid {
+			pet["age"] = age.Int64
 		}
 		if ownerName.Valid {
 			pet["owner_name"] = ownerName.String
@@ -720,7 +709,7 @@ func GetPetsHandler(w http.ResponseWriter, r *http.Request) {
 	countArgIndex := 1
 
 	if speciesIDStr != "" {
-		countQuery += fmt.Sprintf(" AND species_id = $%d", countArgIndex)
+		countQuery += fmt.Sprintf(" AND species = $%d", countArgIndex)
 		countArgs = append(countArgs, speciesIDStr)
 		countArgIndex++
 	}
