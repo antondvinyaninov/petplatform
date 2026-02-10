@@ -30,3 +30,8 @@ func proxyGatewayResponse(w http.ResponseWriter, data []byte, err error) {
 func parseJSONBody(r *http.Request, v interface{}) error {
 	return json.NewDecoder(r.Body).Decode(v)
 }
+
+// parseJSON парсит JSON из байтов
+func parseJSON(data []byte, v interface{}) error {
+	return json.Unmarshal(data, v)
+}

@@ -15,34 +15,54 @@ func AdminPetsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Получаем ID текущего пользователя из контекста
+	userID, ok := r.Context().Value("userID").(int)
+	if !ok {
+		sendError(w, "Не удалось определить пользователя", http.StatusUnauthorized)
+		return
+	}
+
 	switch r.Method {
 	case http.MethodGet:
-		// Получаем параметры запроса
-		query := r.URL.Query().Encode()
-		endpoint := "/api/petid/pets"
-		if query != "" {
-			endpoint += "?" + query
+		// Получаем параметры запроса и добавляем фильтр по user_id
+		query := r.URL.Query()
+		query.Set("user_id", fmt.Sprintf("%d", userID))
+
+		endpoint := fmt.Sprintf("/api/petid/pets?%s", query.Encode())
+
+		fmt.Printf("📝 [Pets] Fetching pets for user_id=%d\n", userID)
+		data, err := client.Get(endpoint)
+
+		// Логируем первые 500 символов ответа для отладки
+		if len(data) > 0 {
+			preview := string(data)
+			if len(preview) > 500 {
+				preview = preview[:500] + "..."
+			}
+			fmt.Printf("📦 [Pets] Gateway response preview: %s\n", preview)
 		}
 
-		data, err := client.Get(endpoint)
 		proxyGatewayResponse(w, data, err)
 
 	case http.MethodPost:
-		// Создание нового питомца
+		// Создание нового питомца - автоматически привязываем к текущему пользователю
 		var body map[string]interface{}
 		if err := parseJSONBody(r, &body); err != nil {
 			sendError(w, "Неверный формат данных", http.StatusBadRequest)
 			return
 		}
 
-		fmt.Printf("📝 [AdminPets] Creating pet with data: %+v\n", body)
+		// Принудительно устанавливаем owner_id = текущий пользователь
+		body["owner_id"] = userID
+
+		fmt.Printf("📝 [Pets] Creating pet for user_id=%d with data: %+v\n", userID, body)
 		data, err := client.Post("/api/petid/pets", body)
 		if err != nil {
-			fmt.Printf("❌ [AdminPets] Gateway error: %v\n", err)
+			fmt.Printf("❌ [Pets] Gateway error: %v\n", err)
 			sendError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		fmt.Printf("✅ [AdminPets] Gateway response: %s\n", string(data))
+		fmt.Printf("✅ [Pets] Gateway response: %s\n", string(data))
 		proxyGatewayResponse(w, data, err)
 
 	default:
@@ -66,35 +86,106 @@ func AdminPetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Получаем ID текущего пользователя
+	userID, ok := r.Context().Value("userID").(int)
+	if !ok {
+		sendError(w, "Не удалось определить пользователя", http.StatusUnauthorized)
+		return
+	}
+
 	endpoint := fmt.Sprintf("/api/petid/pets/%s", petID)
 
 	switch r.Method {
 	case http.MethodGet:
-		fmt.Printf("📝 [AdminPet] Fetching pet ID: %s\n", petID)
+		fmt.Printf("📝 [Pet] Fetching pet ID: %s for user_id=%d\n", petID, userID)
+
+		// Получаем питомца
 		data, err := client.Get(endpoint)
 		if err != nil {
-			fmt.Printf("❌ [AdminPet] Gateway error: %v\n", err)
+			fmt.Printf("❌ [Pet] Gateway error: %v\n", err)
 			sendError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		fmt.Printf("✅ [AdminPet] Gateway response: %s\n", string(data))
-		proxyGatewayResponse(w, data, err)
+
+		// Проверяем владение питомцем
+		if !checkPetOwnership(data, userID) {
+			sendError(w, "Доступ запрещен. Это не ваш питомец", http.StatusForbidden)
+			return
+		}
+
+		fmt.Printf("✅ [Pet] Gateway response: %s\n", string(data))
+		proxyGatewayResponse(w, data, nil)
 
 	case http.MethodPut:
+		// Сначала проверяем владение
+		data, err := client.Get(endpoint)
+		if err != nil {
+			sendError(w, "Питомец не найден", http.StatusNotFound)
+			return
+		}
+
+		if !checkPetOwnership(data, userID) {
+			sendError(w, "Доступ запрещен. Это не ваш питомец", http.StatusForbidden)
+			return
+		}
+
+		// Теперь обновляем
 		var body map[string]interface{}
 		if err := parseJSONBody(r, &body); err != nil {
 			sendError(w, "Неверный формат данных", http.StatusBadRequest)
 			return
 		}
 
-		data, err := client.Put(endpoint, body)
+		// Запрещаем менять owner_id и curator_id
+		delete(body, "owner_id")
+		delete(body, "curator_id")
+
+		data, err = client.Put(endpoint, body)
 		proxyGatewayResponse(w, data, err)
 
 	case http.MethodDelete:
-		data, err := client.Delete(endpoint)
+		// Сначала проверяем владение
+		data, err := client.Get(endpoint)
+		if err != nil {
+			sendError(w, "Питомец не найден", http.StatusNotFound)
+			return
+		}
+
+		if !checkPetOwnership(data, userID) {
+			sendError(w, "Доступ запрещен. Это не ваш питомец", http.StatusForbidden)
+			return
+		}
+
+		// Теперь удаляем
+		data, err = client.Delete(endpoint)
 		proxyGatewayResponse(w, data, err)
 
 	default:
 		sendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+// checkPetOwnership проверяет, является ли пользователь владельцем или куратором питомца
+func checkPetOwnership(petData []byte, userID int) bool {
+	var response struct {
+		Success bool `json:"success"`
+		Pet     struct {
+			OwnerID   *int `json:"owner_id"`
+			CuratorID *int `json:"curator_id"`
+		} `json:"pet"`
+	}
+
+	if err := parseJSON(petData, &response); err != nil {
+		fmt.Printf("❌ [checkPetOwnership] Failed to parse pet data: %v\n", err)
+		return false
+	}
+
+	// Проверяем, является ли пользователь владельцем или куратором
+	isOwner := response.Pet.OwnerID != nil && *response.Pet.OwnerID == userID
+	isCurator := response.Pet.CuratorID != nil && *response.Pet.CuratorID == userID
+
+	fmt.Printf("🔍 [checkPetOwnership] userID=%d, owner_id=%v, curator_id=%v, isOwner=%v, isCurator=%v\n",
+		userID, response.Pet.OwnerID, response.Pet.CuratorID, isOwner, isCurator)
+
+	return isOwner || isCurator
 }

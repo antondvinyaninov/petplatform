@@ -1,115 +1,274 @@
-# ZooPlatforma - Социальная сеть для владельцев питомцев
+# ЗооПлатформа - Кабинет владельца животных
 
-Платформа для владельцев питомцев, приютов и ветеринарных клиник.
+Веб-приложение для владельцев домашних животных, позволяющее хранить всю информацию о питомцах в одном месте: медицинские записи, фотографии, документы и историю жизни.
 
-## 📚 Документация
+## 🎯 Основные возможности
 
-Проект состоит из трёх основных компонентов:
-
-- **[MAIN.md](MAIN.md)** - Основной сайт (Next.js + Gateway API)
-- **[gateway.md](gateway.md)** - Gateway API (Go + PostgreSQL + Redis)
-- **[ADMIN.md](ADMIN.md)** - Административная панель (Next.js + Go)
+- **Цифровой паспорт животного** - подробная карточка каждого питомца с фото, породой, возрастом
+- **Медицинские записи** - история прививок, обработок, посещений ветеринара
+- **Загрузка фото** - фотографии питомцев до 15MB с автоматическим сохранением в S3
+- **Хронология жизни** - полная история изменений и важных событий
+- **SSO авторизация** - единая авторизация через Gateway API
+- **Удобный поиск** - фильтры по виду животного, поиск по имени
 
 ## 🏗️ Архитектура
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                        Browser                          │
-└────────────┬──────────────────────┬─────────────────────┘
-             │                      │
-             ▼                      ▼
-    ┌────────────────┐     ┌────────────────┐
-    │  Main Site     │     │  Admin Panel   │
-    │  (Next.js)     │     │  (Next.js)     │
-    │  Port 3000     │     │  Port 4000     │
-    └────────┬───────┘     └────────┬───────┘
-             │                      │
-             │              ┌───────┴───────┐
-             │              │  Admin Backend│
-             │              │  (Go) :9000   │
-             │              └───────┬───────┘
-             │                      │
-             └──────────┬───────────┘
-                        ▼
-                ┌────────────────┐
-                │  Gateway API   │
-                │  (Go) :8080    │
-                └────────┬───────┘
-                         │
-                ┌────────┴────────┐
-                │                 │
-                ▼                 ▼
-        ┌──────────────┐  ┌──────────────┐
-        │  PostgreSQL  │  │    Redis     │
-        │  Port 5432   │  │  Port 6379   │
-        └──────────────┘  └──────────────┘
+┌─────────────┐      ┌──────────────┐      ┌─────────────┐
+│   Browser   │─────▶│   Next.js    │─────▶│  Backend    │
+│  (Frontend) │      │  (Port 4000) │      │  (Port 9000)│
+└─────────────┘      └──────────────┘      └──────┬──────┘
+                                                   │
+                                                   ▼
+                                            ┌─────────────┐
+                                            │  Gateway    │
+                                            │     API     │
+                                            └──────┬──────┘
+                                                   │
+                                    ┌──────────────┼──────────────┐
+                                    ▼              ▼              ▼
+                              ┌──────────┐  ┌──────────┐  ┌──────────┐
+                              │PostgreSQL│  │    S3    │  │   Auth   │
+                              └──────────┘  └──────────┘  └──────────┘
 ```
-
-## 🎯 Компоненты
-
-### 1. Main Site (Основной сайт)
-- **URL:** https://zooplatforma.ru
-- **Технологии:** Next.js 15, React 19, TypeScript
-- **Функции:** Социальная сеть для владельцев питомцев
-- **Документация:** [MAIN.md](MAIN.md)
-
-### 2. Gateway API
-- **URL:** https://api.zooplatforma.ru
-- **Технологии:** Go, PostgreSQL, Redis
-- **Функции:** REST API, авторизация, база данных
-- **Документация:** [gateway.md](gateway.md)
-
-### 3. Admin Panel (Админ-панель)
-- **URL:** https://admin.zooplatforma.ru
-- **Технологии:** Next.js 16, Go
-- **Функции:** Модерация, управление, мониторинг
-- **Документация:** [ADMIN.md](ADMIN.md)
-
-## 🚀 Быстрый старт
-
-### Локальная разработка
-
-```bash
-# 1. Запустить базу данных
-docker-compose up -d postgres redis
-
-# 2. Запустить Gateway
-cd gateway
-go run main.go
-
-# 3. Запустить Main Site
-cd frontend
-npm install
-npm run dev
-
-# 4. Запустить Admin Panel (опционально)
-cd admin/backend
-go run main.go
-
-cd admin/frontend
-npm install
-npm run dev
-```
-
-### Production URLs
-
-- Main Site: https://zooplatforma.ru
-- Gateway API: https://api.zooplatforma.ru
-- Admin Panel: https://admin.zooplatforma.ru
 
 ## 🛠️ Технологии
 
-- **Frontend:** Next.js, React, TypeScript, Tailwind CSS
-- **Backend:** Go, PostgreSQL, Redis
-- **Auth:** JWT
-- **Deploy:** Docker, Easypanel
+### Backend
+- **Go 1.21+** - основной язык
+- **Gorilla Mux** - HTTP роутер
+- **JWT** - аутентификация через Gateway
+
+### Frontend
+- **Next.js 16** (App Router) - React фреймворк
+- **TypeScript** - типизация
+- **Tailwind CSS** - стилизация
+- **Heroicons** - иконки
+
+### Инфраструктура
+- **PostgreSQL** - база данных (через Gateway)
+- **S3** - хранилище фото (через Gateway)
+- **Gateway API** - единая точка доступа к данным
+
+## 📦 Установка и запуск
+
+### Требования
+- Go 1.21+
+- Node.js 18+
+- Доступ к Gateway API
+
+### Backend
+
+```bash
+cd backend
+
+# Создайте .env файл
+cp .env.example .env
+
+# Отредактируйте .env:
+# PORT=9000
+# GATEWAY_URL=https://api.zooplatforma.ru
+# JWT_SECRET=your-secret-key
+# CORS_ORIGINS=http://localhost:4000
+
+# Установите зависимости
+go mod download
+
+# Запустите сервер
+go run main.go
+```
+
+Backend запустится на `http://localhost:9000`
+
+### Frontend
+
+```bash
+cd frontend
+
+# Установите зависимости
+npm install
+
+# Создайте .env.local файл
+cp .env.example .env.local
+
+# Отредактируйте .env.local:
+# ADMIN_API_URL=http://localhost:9000
+
+# Запустите dev сервер
+npm run dev
+```
+
+Frontend запустится на `http://localhost:4000`
+
+## 🔧 Разработка
+
+### Hot Reload для Backend
+
+```bash
+cd backend
+
+# Установите Air
+go install github.com/cosmtrek/air@latest
+
+# Запустите с hot reload
+air
+```
+
+### Frontend Development
+
+```bash
+cd frontend
+
+# Development mode
+npm run dev
+
+# Build для production
+npm run build
+
+# Запуск production сборки
+npm start
+```
+
+## 📁 Структура проекта
+
+```
+.
+├── backend/
+│   ├── handlers/           # HTTP обработчики
+│   │   ├── auth.go        # Аутентификация
+│   │   ├── pets.go        # Управление питомцами
+│   │   ├── media.go       # Загрузка фото
+│   │   └── breeds.go      # Породы животных
+│   ├── middleware/        # Middleware
+│   │   ├── auth.go        # JWT проверка
+│   │   └── gateway.go     # Gateway клиент
+│   └── main.go            # Точка входа
+│
+├── frontend/
+│   ├── app/
+│   │   ├── (dashboard)/   # Защищенные страницы
+│   │   │   ├── pets/      # Список и карточки питомцев
+│   │   │   └── layout.tsx # Layout с навигацией
+│   │   ├── api/           # Next.js API routes (прокси)
+│   │   ├── auth/          # Страница авторизации
+│   │   └── page.tsx       # Главная страница
+│   └── lib/
+│       └── api.ts         # API клиент
+│
+└── README.md
+```
+
+## 🔐 Аутентификация
+
+Приложение использует SSO через Gateway API:
+
+1. Пользователь вводит email/пароль на `/auth`
+2. Данные отправляются на Gateway `/api/auth/login`
+3. Gateway возвращает JWT токен в cookie `auth_token`
+4. Токен используется для всех последующих запросов
+5. Backend проверяет токен через Gateway `/api/auth/verify`
+
+## 📡 API Endpoints
+
+### Аутентификация
+- `GET /api/admin/auth/me` - Получить текущего пользователя
+- `POST /api/admin/auth/logout` - Выход из системы
+
+### Питомцы
+- `GET /api/admin/pets` - Список питомцев текущего пользователя
+- `POST /api/admin/pets` - Создать питомца
+- `GET /api/admin/pets/:id` - Получить питомца
+- `PUT /api/admin/pets/:id` - Обновить питомца
+- `POST /api/admin/pets/:id/photo` - Загрузить фото питомца
+
+### Породы
+- `GET /api/admin/breeds` - Список пород животных
+
+## 🔒 Безопасность
+
+- Все запросы требуют авторизации через JWT
+- Пользователи видят только своих питомцев
+- Запрещено изменение `owner_id` и `curator_id`
+- CORS настроен только для разрешенных доменов
+- Фото загружаются через защищенный Gateway API
+
+## 🚀 Деплой
+
+### Backend
+
+```bash
+cd backend
+
+# Build
+go build -o owner-cabinet main.go
+
+# Run
+./owner-cabinet
+```
+
+### Frontend
+
+```bash
+cd frontend
+
+# Build
+npm run build
+
+# Start
+npm start
+```
+
+### Docker (опционально)
+
+```bash
+# Backend
+docker build -t owner-cabinet-backend ./backend
+docker run -p 9000:9000 --env-file backend/.env owner-cabinet-backend
+
+# Frontend
+docker build -t owner-cabinet-frontend ./frontend
+docker run -p 4000:4000 owner-cabinet-frontend
+```
+
+## 📝 Переменные окружения
+
+### Backend (.env)
+
+```env
+PORT=9000                                    # Порт backend сервера
+GATEWAY_URL=https://api.zooplatforma.ru     # URL Gateway API
+JWT_SECRET=your-secret-key                   # Секрет для JWT (должен совпадать с Gateway)
+CORS_ORIGINS=http://localhost:4000          # Разрешенные домены для CORS
+```
+
+### Frontend (.env.local)
+
+```env
+ADMIN_API_URL=http://localhost:9000         # URL backend API
+```
+
+## 🐛 Отладка
+
+### Логирование Backend
+
+Backend выводит подробные логи всех операций:
+- 🔐 Аутентификация
+- 📝 Запросы к Gateway
+- 📸 Загрузка фото
+- ✅ Успешные операции
+- ❌ Ошибки
+
+### Логирование Frontend
+
+Откройте консоль браузера (F12) для просмотра:
+- API запросов
+- Ошибок загрузки
+- Состояния компонентов
 
 ## 📄 Лицензия
 
-MIT License
+Proprietary - ЗооПлатформа © 2026
 
-## 📞 Контакты
+## 👥 Контакты
 
-- Website: https://zooplatforma.ru
-- API: https://api.zooplatforma.ru
-- Admin: https://admin.zooplatforma.ru
+Для вопросов и поддержки: https://zooplatforma.ru

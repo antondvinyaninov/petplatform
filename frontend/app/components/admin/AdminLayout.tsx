@@ -23,7 +23,7 @@ interface AdminLayoutProps {
   activeTab: string;
   onTabChange: (tabId: string) => void;
   children: ReactNode;
-  adminUser?: { email: string; name?: string; avatar?: string; role: string } | null;
+  adminUser?: { email: string; name?: string; last_name?: string; avatar?: string; role: string } | null;
   onLogout?: () => void;
   mainSiteUrl?: string;
 }
@@ -38,7 +38,7 @@ export default function AdminLayout({
   children,
   adminUser,
   onLogout,
-  mainSiteUrl = 'http://localhost:3000',
+  mainSiteUrl = 'https://zooplatforma.ru',
 }: AdminLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -60,6 +60,27 @@ export default function AdminLayout({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [userMenuOpen]);
 
+  // Функция для получения полного имени пользователя
+  const getUserFullName = () => {
+    if (!adminUser) return 'Admin';
+    const firstName = adminUser.name || '';
+    const lastName = adminUser.last_name || '';
+    const fullName = `${firstName} ${lastName}`.trim();
+    return fullName || adminUser.email || 'Admin';
+  };
+
+  // Функция для получения инициалов
+  const getUserInitials = () => {
+    if (!adminUser) return 'A';
+    if (adminUser.name && adminUser.last_name) {
+      return `${adminUser.name.charAt(0)}${adminUser.last_name.charAt(0)}`.toUpperCase();
+    }
+    if (adminUser.name) {
+      return adminUser.name.charAt(0).toUpperCase();
+    }
+    return adminUser.email?.charAt(0).toUpperCase() || 'A';
+  };
+
   return (
     <div className="min-h-screen bg-white w-full overflow-x-hidden">
       {/* Header */}
@@ -74,9 +95,11 @@ export default function AdminLayout({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <h1 className="flex items-center gap-2 text-base font-medium text-gray-900 m-0">
+            <h1 className="flex items-center gap-3 text-base font-medium text-gray-900 m-0">
               <img src={logoSrc} alt={logoAlt} className="w-7 h-7" />
-              <span className="text-sm font-bold uppercase hidden sm:block">{logoText}</span>
+              {adminUser && (
+                <span className="text-sm font-bold text-gray-900">{getUserFullName()}</span>
+              )}
             </h1>
           </div>
           <div className="flex items-center gap-4">
@@ -96,12 +119,12 @@ export default function AdminLayout({
                     {adminUser.avatar ? (
                       <img 
                         src={adminUser.avatar.startsWith('http') ? adminUser.avatar : `${GATEWAY_URL}${adminUser.avatar}`}
-                        alt={adminUser.name || adminUser.email}
+                        alt={getUserFullName()}
                         className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                       />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 flex-shrink-0">
-                        <span className="text-sm font-medium">{adminUser?.email?.charAt(0).toUpperCase() || 'A'}</span>
+                        <span className="text-sm font-medium">{getUserInitials()}</span>
                       </div>
                     )}
                     <span className="text-xs text-gray-400">▼</span>
@@ -113,17 +136,17 @@ export default function AdminLayout({
                         {adminUser.avatar ? (
                           <img 
                             src={adminUser.avatar.startsWith('http') ? adminUser.avatar : `${GATEWAY_URL}${adminUser.avatar}`}
-                            alt={adminUser.name || adminUser.email}
+                            alt={getUserFullName()}
                             className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                           />
                         ) : (
                           <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 flex-shrink-0">
-                            <span className="text-sm font-medium">{adminUser?.email?.charAt(0).toUpperCase() || 'A'}</span>
+                            <span className="text-sm font-medium">{getUserInitials()}</span>
                           </div>
                         )}
                         <div className="flex-1">
-                          <div className="text-sm font-medium text-gray-900 mb-0.5">{adminUser?.name || adminUser?.email || 'Admin'}</div>
-                          <div className="text-xs text-gray-600">{adminUser?.role || 'admin'}</div>
+                          <div className="text-sm font-medium text-gray-900 mb-0.5">{getUserFullName()}</div>
+                          <div className="text-xs text-gray-600">{adminUser?.role || 'user'}</div>
                         </div>
                       </div>
 
@@ -134,7 +157,7 @@ export default function AdminLayout({
                           rel="noopener noreferrer"
                           className="w-full px-4 py-3 bg-none border-none cursor-pointer text-left text-sm text-gray-900 transition-colors hover:bg-gray-100 block no-underline"
                         >
-                          Главная страница
+                          ЗооПлатформа
                         </a>
                         {onLogout && (
                           <button

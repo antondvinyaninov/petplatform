@@ -52,63 +52,26 @@ func main() {
 	}).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/admin/auth/logout", handlers.AdminLogoutHandler).Methods("POST", "OPTIONS")
 
-	// Protected admin routes (требуют superadmin)
-	adminRouter := router.PathPrefix("/api/admin").Subrouter()
-	adminRouter.Use(func(next http.Handler) http.Handler {
+	// Protected routes (требуют авторизации)
+	protectedRouter := router.PathPrefix("/api/admin").Subrouter()
+	protectedRouter.Use(func(next http.Handler) http.Handler {
 		return middleware.AuthMiddleware(next)
 	})
-	adminRouter.Use(func(next http.Handler) http.Handler {
-		return middleware.SuperAdminMiddleware(next)
-	})
 
-	// Users
-	adminRouter.HandleFunc("/users", handlers.AdminUsersHandler).Methods("GET", "OPTIONS")
-	adminRouter.HandleFunc("/users/{id:[0-9]+}", handlers.AdminUserHandler).Methods("GET", "PUT", "DELETE", "OPTIONS")
+	// Pets (Питомцы) - доступны всем авторизованным пользователям
+	protectedRouter.HandleFunc("/pets", handlers.AdminPetsHandler).Methods("GET", "POST", "OPTIONS")
+	protectedRouter.HandleFunc("/pets/{id:[0-9]+}", handlers.AdminPetHandler).Methods("GET", "PUT", "DELETE", "OPTIONS")
+	protectedRouter.HandleFunc("/pets/{id:[0-9]+}/photo", handlers.UploadPetPhotoHandler).Methods("POST", "OPTIONS")
 
-	// Posts
-	adminRouter.HandleFunc("/posts", handlers.AdminPostsHandler).Methods("GET", "OPTIONS")
-	adminRouter.HandleFunc("/posts/{id:[0-9]+}", handlers.AdminPostHandler).Methods("GET", "PUT", "DELETE", "OPTIONS")
-
-	// Organizations
-	adminRouter.HandleFunc("/organizations", handlers.AdminOrganizationsHandler).Methods("GET", "OPTIONS")
-	adminRouter.HandleFunc("/organizations/{id:[0-9]+}/verify", handlers.AdminVerifyOrganizationHandler).Methods("PUT", "OPTIONS")
-	adminRouter.HandleFunc("/organizations/stats", handlers.AdminOrganizationStatsHandler).Methods("GET", "OPTIONS")
-
-	// Stats
-	adminRouter.HandleFunc("/stats/overview", handlers.AdminStatsOverviewHandler).Methods("GET", "OPTIONS")
-
-	// Breeds (Породы)
-	adminRouter.HandleFunc("/breeds", handlers.AdminBreedsHandler).Methods("GET", "POST", "OPTIONS")
-	adminRouter.HandleFunc("/breeds/{id:[0-9]+}", handlers.AdminBreedHandler).Methods("GET", "PUT", "DELETE", "OPTIONS")
-
-	// Pets (Питомцы)
-	adminRouter.HandleFunc("/pets", handlers.AdminPetsHandler).Methods("GET", "POST", "OPTIONS")
-	adminRouter.HandleFunc("/pets/{id:[0-9]+}", handlers.AdminPetHandler).Methods("GET", "PUT", "DELETE", "OPTIONS")
-
-	// Logs
-	adminRouter.HandleFunc("/logs", handlers.AdminLogsHandler).Methods("GET", "OPTIONS")
-	adminRouter.HandleFunc("/logs/stats", handlers.AdminLogsStatsHandler).Methods("GET", "OPTIONS")
-	adminRouter.HandleFunc("/user-activity", handlers.UserActivityHandler).Methods("GET", "OPTIONS")
-
-	// Monitoring
-	adminRouter.HandleFunc("/monitoring/errors", handlers.GetRecentErrorsHandler).Methods("GET", "OPTIONS")
-	adminRouter.HandleFunc("/monitoring/metrics", handlers.GetSystemMetricsHandler).Methods("GET", "OPTIONS")
-	adminRouter.HandleFunc("/monitoring/error-stats", handlers.GetErrorStatsByServiceHandler).Methods("GET", "OPTIONS")
-
-	// Moderation
-	adminRouter.HandleFunc("/moderation/reports", handlers.GetReportsHandler).Methods("GET", "OPTIONS")
-	adminRouter.HandleFunc("/moderation/reports/{id:[0-9]+}", handlers.ReviewReportHandler).Methods("PUT", "OPTIONS")
-	adminRouter.HandleFunc("/moderation/stats", handlers.GetModerationStatsHandler).Methods("GET", "OPTIONS")
-
-	// Health check for all services
-	adminRouter.HandleFunc("/health/services", handlers.HealthCheckHandler).Methods("GET", "OPTIONS")
+	// Breeds (Породы) - доступны всем авторизованным пользователям
+	protectedRouter.HandleFunc("/breeds", handlers.AdminBreedsHandler).Methods("GET", "OPTIONS")
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "9000"
 	}
 
-	fmt.Printf("🔐 Admin Panel API starting on port %s\n", port)
+	fmt.Printf("🐾 Owner Cabinet API starting on port %s\n", port)
 	fmt.Println("📊 Dashboard: http://localhost:4000")
 	fmt.Printf("🔗 Gateway: %s\n", gatewayURL)
 	log.Fatal(http.ListenAndServe(":"+port, router))
@@ -150,10 +113,10 @@ func corsMiddleware(next http.Handler) http.Handler {
 
 func handleRoot(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, `{"message": "ЗооПлатформа Admin API", "version": "0.1.0"}`)
+	fmt.Fprintf(w, `{"message": "ЗооПлатформа - Кабинет владельца API", "version": "0.1.0"}`)
 }
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, `{"status": "ok", "service": "admin-api"}`)
+	fmt.Fprintf(w, `{"status": "ok", "service": "owner-cabinet-api"}`)
 }

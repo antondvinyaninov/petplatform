@@ -27,42 +27,10 @@ export default function AdminAuth() {
         return { success: false, error: loginResult.error || 'Неверный email или пароль' };
       }
 
-      console.log('✅ Login successful, checking admin rights...');
+      console.log('✅ Login successful!');
 
-      // Проверяем права администратора через proxy
-      const meResponse = await fetch('/api/gateway/auth/me', {
-        method: 'GET',
-        credentials: 'include',
-      });
-
-      console.log('📥 Me response status:', meResponse.status);
-      const meResult = await meResponse.json();
-      console.log('📥 Me result:', meResult);
-      console.log('📥 Full user object:', JSON.stringify(meResult.user, null, 2));
-
-      if (!meResult.success) {
-        console.error('❌ Me check failed:', meResult.error);
-        return { success: false, error: 'У вас нет прав администратора' };
-      }
-
-      // Проверяем роль superadmin
-      // Gateway может возвращать либо role (строка), либо roles (массив)
-      const userRole = meResult.user?.role;
-      const userRoles = meResult.user?.roles || [];
-      const roles = userRoles.length > 0 ? userRoles : (userRole ? [userRole] : []);
-      
-      console.log('👤 User role:', userRole);
-      console.log('👤 User roles array:', roles);
-      
-      if (!roles.includes('superadmin')) {
-        console.error('❌ No superadmin role. Roles:', roles);
-        return { success: false, error: 'Требуются права суперадмина' };
-      }
-
-      console.log('✅ Superadmin confirmed! Redirecting...');
-
-      // Успешный вход
-      router.push('/dashboard');
+      // Успешный вход - редирект в кабинет
+      router.push('/pets');
       return { success: true };
     } catch (err) {
       console.error('💥 Login error:', err);
@@ -75,11 +43,11 @@ export default function AdminAuth() {
       mode="login"
       showTabs={false}
       onSubmit={handleSubmit}
-      logoText="ЗооАдминка"
-      logoAlt="ЗооАдминка"
-      subtitle="Войдите в панель администратора"
-      infoTitle="🔒 Доступ ограничен"
-      infoText="Доступ только для администраторов платформы"
+      logoText="ЗооПлатформа"
+      logoAlt="ЗооПлатформа - Кабинет владельца"
+      subtitle="Войдите в кабинет владельца животных"
+      infoTitle="🐾 Кабинет владельца"
+      infoText="Управляйте информацией о ваших питомцах"
     />
   );
 }

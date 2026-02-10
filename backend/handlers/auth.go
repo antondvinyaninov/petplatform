@@ -3,6 +3,7 @@ package handlers
 import (
 	"admin/middleware"
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -13,29 +14,8 @@ type AdminResponse struct {
 	Roles []string `json:"roles"`
 }
 
-// AdminMeHandler - получить текущего админа через gateway
+// AdminMeHandler - получить текущего пользователя через gateway
 func AdminMeHandler(w http.ResponseWriter, r *http.Request) {
-	// Получаем данные из контекста (уже проверены middleware)
-	roles, ok := r.Context().Value("roles").([]string)
-	if !ok {
-		sendError(w, "Не авторизован", http.StatusUnauthorized)
-		return
-	}
-
-	// Проверяем наличие роли superadmin
-	hasSuperAdmin := false
-	for _, role := range roles {
-		if role == "superadmin" {
-			hasSuperAdmin = true
-			break
-		}
-	}
-
-	if !hasSuperAdmin {
-		sendError(w, "Доступ запрещен. Требуются права суперадмина", http.StatusForbidden)
-		return
-	}
-
 	// Получаем дополнительные данные пользователя через gateway
 	authToken, err := middleware.GetAuthTokenFromRequest(r)
 	if err != nil {
@@ -50,21 +30,24 @@ func AdminMeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Логируем сырой ответ от Gateway
+	fmt.Printf("📦 [Auth/Me] Gateway raw response: %s\n", string(userData))
+
 	// Парсим ответ от gateway
 	var gatewayResp struct {
 		Success bool `json:"success"`
-		Data    struct {
-			User struct {
-				ID     int      `json:"id"`
-				Email  string   `json:"email"`
-				Name   string   `json:"name"`
-				Roles  []string `json:"roles"`
-				Avatar string   `json:"avatar"`
-			} `json:"user"`
-		} `json:"data"`
+		User    struct {
+			ID       int    `json:"id"`
+			Email    string `json:"email"`
+			Name     string `json:"name"`
+			LastName string `json:"last_name"`
+			Avatar   string `json:"avatar"`
+			Role     string `json:"role"`
+		} `json:"user"`
 	}
 
 	if err := json.Unmarshal(userData, &gatewayResp); err != nil {
+		fmt.Printf("❌ [Auth/Me] Failed to parse: %v\n", err)
 		sendError(w, "Ошибка парсинга данных", http.StatusInternalServerError)
 		return
 	}
@@ -74,11 +57,28 @@ func AdminMeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sendSuccess(w, AdminResponse{
-		ID:    gatewayResp.Data.User.ID,
-		Name:  gatewayResp.Data.User.Name,
-		Email: gatewayResp.Data.User.Email,
-		Roles: gatewayResp.Data.User.Roles,
+	// Логируем данные пользователя
+	fmt.Printf("👤 [Auth/Me] User data: id=%d, email=%s, name=%s, last_name=%s, avatar=%s\n",
+		gatewayResp.User.ID,
+		gatewayResp.User.Email,
+		gatewayResp.User.Name,
+		gatewayResp.User.LastName,
+		gatewayResp.User.Avatar,
+	)
+
+	// Возвращаем в формате {success: true, user: {...}}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"user": map[string]interface{}{
+			"id":         gatewayResp.User.ID,
+			"email":      gatewayResp.User.Email,
+			"first_name": gatewayResp.User.Name,
+			"last_name":  gatewayResp.User.LastName,
+			"name":       gatewayResp.User.Name + " " + gatewayResp.User.LastName,
+			"avatar_url": gatewayResp.User.Avatar,
+			"role":       gatewayResp.User.Role,
+		},
 	})
 }
 

@@ -15,6 +15,7 @@ interface Pet {
   gender: string;
   description?: string;
   relationship?: string;
+  photo_url?: string;
   created_at: string;
 }
 
@@ -31,7 +32,6 @@ export default function PetsPage() {
 
   // Модальное окно
   const [showModal, setShowModal] = useState(false);
-  const [editingPet, setEditingPet] = useState<Pet | null>(null);
   const [newPet, setNewPet] = useState({
     name: '',
     species_id: 1,
@@ -106,133 +106,52 @@ export default function PetsPage() {
     try {
       setSaving(true);
 
-      if (editingPet) {
-        // Редактирование существующего питомца
-        const response = await fetch(`/api/admin/pets/${editingPet.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify(newPet),
-        });
+      // Создание нового питомца
+      console.log('Отправляем данные питомца:', newPet);
+      
+      const response = await fetch('/api/admin/pets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(newPet),
+      });
 
-        if (response.ok) {
-          setShowModal(false);
-          setEditingPet(null);
-          setBreedSearch('');
-          setShowBreedDropdown(false);
-          setBirthDateType('exact');
-          setApproximateAge({ years: 0, months: 0 });
-          setNewPet({
-            name: '',
-            species_id: 1,
-            breed_id: null,
-            birth_date: '',
-            age_type: 'exact',
-            approximate_years: 0,
-            approximate_months: 0,
-            gender: 'male',
-            description: '',
-            relationship: 'owner',
-          });
-          await fetchPets();
-          alert('Питомец успешно обновлен!');
-        } else {
-          const data = await response.json();
-          alert('Ошибка: ' + (data.error || 'Не удалось обновить питомца'));
-        }
+      console.log('Статус ответа:', response.status);
+
+      if (response.ok) {
+        setShowModal(false);
+        setBreedSearch('');
+        setShowBreedDropdown(false);
+        setBirthDateType('exact');
+        setApproximateAge({ years: 0, months: 0 });
+        setNewPet({
+          name: '',
+          species_id: 1,
+          breed_id: null,
+          birth_date: '',
+          age_type: 'exact',
+          approximate_years: 0,
+          approximate_months: 0,
+          gender: 'male',
+          description: '',
+          relationship: 'owner',
+        });
+        setSpeciesFilter('all');
+        setSearchQuery('');
+        setSortOrder('desc');
+        await fetchPets();
+        alert('Питомец успешно добавлен!');
       } else {
-        // Создание нового питомца
-        console.log('Отправляем данные питомца:', newPet);
-        
-        const response = await fetch('/api/admin/pets', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify(newPet),
-        });
-
-        console.log('Статус ответа:', response.status);
-
-        if (response.ok) {
-          setShowModal(false);
-          setBreedSearch('');
-          setShowBreedDropdown(false);
-          setBirthDateType('exact');
-          setApproximateAge({ years: 0, months: 0 });
-          setNewPet({
-            name: '',
-            species_id: 1,
-            breed_id: null,
-            birth_date: '',
-            age_type: 'exact',
-            approximate_years: 0,
-            approximate_months: 0,
-            gender: 'male',
-            description: '',
-            relationship: 'owner',
-          });
-          setSpeciesFilter('all');
-          setSearchQuery('');
-          setSortOrder('desc');
-          await fetchPets();
-          alert('Питомец успешно добавлен!');
-        } else {
-          const data = await response.json();
-          alert('Ошибка: ' + (data.error || 'Не удалось добавить питомца'));
-        }
+        const data = await response.json();
+        alert('Ошибка: ' + (data.error || 'Не удалось добавить питомца'));
       }
     } catch (err) {
       alert('Ошибка подключения к серверу');
       console.error(err);
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleEditPet = (pet: Pet) => {
-    setEditingPet(pet);
-    const selectedBreed = breeds.find(b => b.id === pet.breed_id);
-    setBreedSearch(selectedBreed ? selectedBreed.name : '');
-    setNewPet({
-      name: pet.name,
-      species_id: pet.species_id || 1,
-      breed_id: pet.breed_id || null,
-      birth_date: pet.birth_date ? pet.birth_date.split('T')[0] : '',
-      age_type: (pet as any).age_type || 'exact',
-      approximate_years: (pet as any).approximate_years || 0,
-      approximate_months: (pet as any).approximate_months || 0,
-      gender: pet.gender || 'male',
-      description: pet.description || '',
-      relationship: (pet as any).relationship || 'owner',
-    });
-    setShowModal(true);
-  };
-
-  const handleDeletePet = async (pet: Pet) => {
-    if (!confirm(`Удалить питомца "${pet.name}"?`)) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/admin/pets/${pet.id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        await fetchPets();
-        alert('Питомец успешно удален!');
-      } else {
-        const data = await response.json();
-        alert('Ошибка: ' + (data.error || 'Не удалось удалить питомца'));
-      }
-    } catch (err) {
-      alert('Ошибка подключения к серверу');
-      console.error(err);
     }
   };
 
@@ -245,11 +164,10 @@ export default function PetsPage() {
       result = result.filter(pet => pet.species_name === speciesName);
     }
 
-    // Поиск по имени питомца или владельца
+    // Поиск по имени питомца
     if (searchQuery.trim()) {
       result = result.filter(pet =>
-        pet.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        pet.owner_name?.toLowerCase().includes(searchQuery.toLowerCase())
+        pet.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -278,6 +196,32 @@ export default function PetsPage() {
     });
   };
 
+  // Функция для вычисления возраста из даты рождения
+  const calculateAge = (birthDate: string) => {
+    if (!birthDate) return '-';
+    
+    const birth = new Date(birthDate);
+    const today = new Date();
+    
+    let years = today.getFullYear() - birth.getFullYear();
+    let months = today.getMonth() - birth.getMonth();
+    
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+    
+    if (years === 0 && months === 0) {
+      return 'Меньше месяца';
+    } else if (years === 0) {
+      return `${months} ${months === 1 ? 'месяц' : months < 5 ? 'месяца' : 'месяцев'}`;
+    } else if (months === 0) {
+      return `${years} ${years === 1 ? 'год' : years < 5 ? 'года' : 'лет'}`;
+    } else {
+      return `${years} ${years === 1 ? 'год' : years < 5 ? 'года' : 'лет'} ${months} ${months === 1 ? 'месяц' : months < 5 ? 'месяца' : 'месяцев'}`;
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -298,8 +242,8 @@ export default function PetsPage() {
     <div className="p-6">
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Питомцы</h1>
-          <p className="text-gray-600 mt-2">Все зарегистрированные питомцы</p>
+          <h1 className="text-2xl font-bold text-gray-900">Мои питомцы</h1>
+          <p className="text-gray-600 mt-2">Управление вашими питомцами</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
@@ -331,7 +275,7 @@ export default function PetsPage() {
           {/* Поиск */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Поиск по имени питомца или владельца
+              Поиск по имени питомца
             </label>
             <input
               type="text"
@@ -366,6 +310,9 @@ export default function PetsPage() {
                 </div>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Фото
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Имя питомца
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -375,16 +322,10 @@ export default function PetsPage() {
                 Порода
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Владелец
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Дата рождения
+                Возраст
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Пол
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Роль
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Действия
@@ -394,7 +335,7 @@ export default function PetsPage() {
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredPets.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-6 py-4 text-center text-gray-500">
+                <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
                   {searchQuery || speciesFilter !== 'all' ? 'Ничего не найдено' : 'Нет данных'}
                 </td>
               </tr>
@@ -403,6 +344,21 @@ export default function PetsPage() {
                 <tr key={pet.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {pet.id}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center transition-transform duration-200 hover:scale-150 hover:z-10 relative">
+                      {pet.photo_url ? (
+                        <img 
+                          src={pet.photo_url} 
+                          alt={pet.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-2xl">
+                          {pet.species_name === 'Собака' ? '🐕' : '🐈'}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {pet.name}
@@ -414,36 +370,18 @@ export default function PetsPage() {
                     {pet.breed_name || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {pet.owner_name || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {pet.birth_date ? new Date(pet.birth_date).toLocaleDateString('ru-RU') : '-'}
+                    {calculateAge(pet.birth_date)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {pet.gender === 'male' ? 'Самец' : pet.gender === 'female' ? 'Самка' : '-'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {pet.relationship === 'owner' ? 'Владелец' : pet.relationship === 'curator' ? 'Куратор' : '-'}
-                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <a
                       href={`/pets/${pet.id}`}
-                      className="text-blue-600 hover:text-blue-900 mr-4"
+                      className="text-blue-600 hover:text-blue-900"
                     >
                       Просмотр
                     </a>
-                    <button
-                      onClick={() => handleEditPet(pet)}
-                      className="text-blue-600 hover:text-blue-900 mr-4"
-                    >
-                      Редактировать
-                    </button>
-                    <button
-                      onClick={() => handleDeletePet(pet)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Удалить
-                    </button>
                   </td>
                 </tr>
               ))
@@ -457,7 +395,7 @@ export default function PetsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-gray-900 mb-4">
-              {editingPet ? 'Редактировать питомца' : 'Добавить питомца'}
+              Добавить питомца
             </h2>
             
             <div className="space-y-4">
@@ -657,21 +595,6 @@ export default function PetsPage() {
                 </select>
               </div>
 
-              {/* Роль (владелец или куратор) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Кто я питомцу *
-                </label>
-                <select
-                  value={newPet.relationship}
-                  onChange={(e) => setNewPet({ ...newPet, relationship: e.target.value as 'owner' | 'curator' })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="owner">Владелец</option>
-                  <option value="curator">Куратор</option>
-                </select>
-              </div>
-
               {/* Описание */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -692,7 +615,6 @@ export default function PetsPage() {
               <button
                 onClick={() => {
                   setShowModal(false);
-                  setEditingPet(null);
                   setBreedSearch('');
                   setShowBreedDropdown(false);
                   setBirthDateType('exact');
@@ -720,7 +642,7 @@ export default function PetsPage() {
                 disabled={saving}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               >
-                {saving ? 'Сохранение...' : (editingPet ? 'Сохранить' : 'Добавить')}
+                {saving ? 'Сохранение...' : 'Добавить'}
               </button>
             </div>
           </div>

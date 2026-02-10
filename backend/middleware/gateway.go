@@ -166,3 +166,8 @@ func GetAuthTokenFromRequest(r *http.Request) (string, error) {
 	}
 	return cookie.Value, nil
 }
+
+// GetBaseURL возвращает базовый URL gateway
+func (c *GatewayClient) GetBaseURL() string {
+	return c.BaseURL
+}

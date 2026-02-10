@@ -16,7 +16,7 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [adminUser, setAdminUser] = useState<{ email: string; name?: string; avatar?: string; role: string } | null>(null);
+  const [adminUser, setAdminUser] = useState<{ email: string; name?: string; last_name?: string; avatar?: string; role: string } | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
 
   useEffect(() => {
@@ -32,24 +32,12 @@ export default function DashboardLayout({
           console.log('🔍 Layout auth check:', data);
           
           if (data.success && data.user) {
-            // Gateway возвращает role (строка), не roles (массив)
-            const userRole = data.user.role;
-            const userRoles = data.user.roles || [];
-            const roles = userRoles.length > 0 ? userRoles : (userRole ? [userRole] : []);
-            
-            console.log('🔍 User roles in layout:', roles);
-            
-            if (!roles.includes('superadmin')) {
-              alert('Доступ запрещен. Требуются права суперадмина.');
-              router.push('/auth');
-              return;
-            }
-            
             setAdminUser({
               email: data.user.email,
               name: data.user.name,
+              last_name: data.user.last_name,
               avatar: data.user.avatar,
-              role: 'superadmin',
+              role: data.user.role || 'user',
             });
           } else {
             router.push('/auth');
@@ -68,30 +56,18 @@ export default function DashboardLayout({
 
   useEffect(() => {
     // Определяем активную вкладку по URL
-    if (pathname.includes('/breeds')) {
-      setActiveTab('reference');
-    } else if (pathname.includes('/pets')) {
+    if (pathname.includes('/pets')) {
       setActiveTab('pets');
     } else {
-      setActiveTab('dashboard');
+      setActiveTab('pets'); // По умолчанию питомцы
     }
   }, [pathname]);
 
   const tabs: AdminTab[] = [
     {
-      id: 'dashboard',
-      label: 'Дашборд',
-      icon: <ChartBarIcon className="w-5 h-5" />,
-    },
-    {
       id: 'pets',
-      label: 'Питомцы',
+      label: 'Мои питомцы',
       icon: <HeartIcon className="w-5 h-5" />,
-    },
-    {
-      id: 'reference',
-      label: 'Справочник',
-      icon: <BookOpenIcon className="w-5 h-5" />,
     },
   ];
 
@@ -99,14 +75,8 @@ export default function DashboardLayout({
     setActiveTab(tabId);
     
     // Навигация по табам
-    const routes: Record<string, string> = {
-      dashboard: '/dashboard',
-      reference: '/breeds',
-      pets: '/pets',
-    };
-
-    if (routes[tabId]) {
-      router.push(routes[tabId]);
+    if (tabId === 'pets') {
+      router.push('/pets');
     }
   };
 
@@ -133,14 +103,14 @@ export default function DashboardLayout({
   return (
     <AdminLayout
       logoSrc="/logo.svg"
-      logoText="PetID"
-      logoAlt="PetID - База данных питомцев"
+      logoText="ЗооПлатформа"
+      logoAlt="ЗооПлатформа - Кабинет владельца"
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={handleTabChange}
       adminUser={adminUser}
       onLogout={handleLogout}
-      mainSiteUrl="http://localhost:3000"
+      mainSiteUrl="https://zooplatforma.ru"
     >
       {children}
     </AdminLayout>
