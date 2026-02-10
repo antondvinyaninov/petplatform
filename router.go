@@ -97,6 +97,24 @@ func SetupRouter() *mux.Router {
 	apiRouter.HandleFunc("/petid/pets/{id:[0-9]+}", petid.UpdatePetHandler).Methods("PUT", "OPTIONS")
 	apiRouter.HandleFunc("/petid/pets/{id:[0-9]+}", petid.DeletePetHandler).Methods("DELETE", "OPTIONS")
 
+	// PetID Health Records endpoints (прививки, обработки, медицинские записи)
+	apiRouter.HandleFunc("/petid/pets/{id:[0-9]+}/vaccinations", petid.GetPetVaccinationsHandler).Methods("GET", "OPTIONS")
+	apiRouter.HandleFunc("/petid/pets/{id:[0-9]+}/vaccinations", petid.CreateVaccinationHandler).Methods("POST", "OPTIONS")
+	apiRouter.HandleFunc("/petid/vaccinations/{id:[0-9]+}", petid.UpdateVaccinationHandler).Methods("PUT", "OPTIONS")
+	apiRouter.HandleFunc("/petid/vaccinations/{id:[0-9]+}", petid.DeleteVaccinationHandler).Methods("DELETE", "OPTIONS")
+
+	apiRouter.HandleFunc("/petid/pets/{id:[0-9]+}/treatments", petid.GetPetTreatmentsHandler).Methods("GET", "OPTIONS")
+	apiRouter.HandleFunc("/petid/pets/{id:[0-9]+}/treatments", petid.CreateTreatmentHandler).Methods("POST", "OPTIONS")
+	apiRouter.HandleFunc("/petid/treatments/{id:[0-9]+}", petid.UpdateTreatmentHandler).Methods("PUT", "OPTIONS")
+	apiRouter.HandleFunc("/petid/treatments/{id:[0-9]+}", petid.DeleteTreatmentHandler).Methods("DELETE", "OPTIONS")
+
+	apiRouter.HandleFunc("/petid/pets/{id:[0-9]+}/medical-records", petid.GetPetMedicalRecordsHandler).Methods("GET", "OPTIONS")
+	apiRouter.HandleFunc("/petid/pets/{id:[0-9]+}/medical-records", petid.CreateMedicalRecordHandler).Methods("POST", "OPTIONS")
+	apiRouter.HandleFunc("/petid/medical-records/{id:[0-9]+}", petid.UpdateMedicalRecordHandler).Methods("PUT", "OPTIONS")
+	apiRouter.HandleFunc("/petid/medical-records/{id:[0-9]+}", petid.DeleteMedicalRecordHandler).Methods("DELETE", "OPTIONS")
+
+	apiRouter.HandleFunc("/petid/pets/{id:[0-9]+}/changelog", petid.GetPetChangelogHandler).Methods("GET", "OPTIONS")
+
 	// PetID Service endpoints (проксирование на PetBase Service) - ОТКЛЮЧЕНО, используем прямой доступ к БД
 	// if petbaseService != nil {
 	// 	apiRouter.HandleFunc("/petid/pets/{id:[0-9]+}", ProxyHandler(petbaseService)).Methods("GET", "OPTIONS")

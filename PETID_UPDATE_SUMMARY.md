@@ -4,7 +4,7 @@
 
 ## ✅ Выполнено
 
-### 1. Обновление таблицы `pets`
+### 1. Обновление таблицы `pets` ✅
 
 **Добавлено 7 новых колонок:**
 
@@ -141,7 +141,34 @@
 
 ## 📋 Следующие шаги (TODO)
 
-### Высокий приоритет:
+### ✅ ВЫПОЛНЕНО:
+- [x] Создать CRUD endpoints для `pet_vaccinations`
+  - GET /api/petid/pets/:id/vaccinations
+  - POST /api/petid/pets/:id/vaccinations
+  - PUT /api/petid/vaccinations/:id
+  - DELETE /api/petid/vaccinations/:id
+
+- [x] Создать CRUD endpoints для `pet_treatments`
+  - GET /api/petid/pets/:id/treatments
+  - POST /api/petid/pets/:id/treatments
+  - PUT /api/petid/treatments/:id
+  - DELETE /api/petid/treatments/:id
+
+- [x] Создать CRUD endpoints для `medical_records`
+  - GET /api/petid/pets/:id/medical-records
+  - POST /api/petid/pets/:id/medical-records
+  - PUT /api/petid/medical-records/:id
+  - DELETE /api/petid/medical-records/:id
+
+- [x] Создать endpoint для истории изменений
+  - GET /api/petid/pets/:id/changelog
+
+- [x] Добавить автоматическое логирование в `pet_change_log` при:
+  - Добавлении прививки (vaccination)
+  - Добавлении обработки (treatment)
+  - Добавлении медицинской записи (medical_record)
+
+### Средний приоритет:
 - [ ] Создать CRUD endpoints для `pet_vaccinations`
   - GET /api/petid/pets/:id/vaccinations
   - POST /api/petid/pets/:id/vaccinations
@@ -161,19 +188,10 @@
   - DELETE /api/petid/medical-records/:id
 
 ### Средний приоритет:
-- [ ] Создать endpoint для истории изменений
-  - GET /api/petid/pets/:id/changelog
-
-- [ ] Добавить автоматическое логирование в `pet_change_log` при:
-  - Создании питомца (registration)
-  - Обновлении питомца (update_general, update_identification, update_location, update_health)
-  - Добавлении прививки (vaccination)
-  - Добавлении обработки (treatment)
-  - Добавлении медицинской записи (medical_record)
+- [ ] Обновить endpoint `PUT /api/petid/pets/:id` для поддержки новых полей location и health
+- [ ] Обновить endpoint `POST /api/petid/pets` для поддержки новых полей location и health
 
 ### Низкий приоритет:
-- [ ] Обновить endpoint `PUT /api/petid/pets/:id` для поддержки новых полей
-- [ ] Обновить endpoint `POST /api/petid/pets` для поддержки новых полей
 - [ ] Добавить валидацию для `location_type` (enum)
 - [ ] Добавить валидацию для `vaccine_type` (enum)
 - [ ] Добавить валидацию для `treatment_type` (enum)
