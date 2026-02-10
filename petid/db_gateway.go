@@ -1362,6 +1362,7 @@ func GetPetByIDHandler(w http.ResponseWriter, r *http.Request) {
 			p.weight,
 			p.sterilization_date,
 			p.health_notes,
+			p.photo_url,
 			s.name as species_name,
 			s.id as species_id,
 			b.name as breed_name,
@@ -1409,6 +1410,7 @@ func GetPetByIDHandler(w http.ResponseWriter, r *http.Request) {
 	var weight sql.NullFloat64
 	var sterilizationDate sql.NullTime
 	var healthNotes sql.NullString
+	var photoURL sql.NullString
 	var speciesName sql.NullString
 	var speciesID sql.NullInt64
 	var breedName sql.NullString
@@ -1428,7 +1430,7 @@ func GetPetByIDHandler(w http.ResponseWriter, r *http.Request) {
 		&markingDate, &tagNumber, &brandNumber, &chipNumber,
 		&locationType, &locationAddress, &locationCage, &locationContact,
 		&locationPhone, &locationNotes,
-		&weight, &sterilizationDate, &healthNotes,
+		&weight, &sterilizationDate, &healthNotes, &photoURL,
 		&speciesName, &speciesID, &breedName, &breedID,
 		&ownerName, &ownerID, &ownerEmail, &ownerPhone,
 		&ownerAvatar, &ownerBio, &ownerRole,
@@ -1529,6 +1531,9 @@ func GetPetByIDHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if healthNotes.Valid {
 		pet["health_notes"] = healthNotes.String
+	}
+	if photoURL.Valid {
+		pet["photo_url"] = photoURL.String
 	}
 	if speciesName.Valid {
 		pet["species_name"] = speciesName.String
