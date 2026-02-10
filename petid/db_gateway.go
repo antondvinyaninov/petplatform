@@ -1347,6 +1347,15 @@ func GetPetByIDHandler(w http.ResponseWriter, r *http.Request) {
 			p.tag_number,
 			p.brand_number,
 			p.chip_number,
+			p.location_type,
+			p.location_address,
+			p.location_cage,
+			p.location_contact,
+			p.location_phone,
+			p.location_notes,
+			p.weight,
+			p.sterilization_date,
+			p.health_notes,
 			s.name as species_name,
 			s.id as species_id,
 			b.name as breed_name,
@@ -1385,6 +1394,15 @@ func GetPetByIDHandler(w http.ResponseWriter, r *http.Request) {
 	var tagNumber sql.NullString
 	var brandNumber sql.NullString
 	var chipNumber sql.NullString
+	var locationType sql.NullString
+	var locationAddress sql.NullString
+	var locationCage sql.NullString
+	var locationContact sql.NullString
+	var locationPhone sql.NullString
+	var locationNotes sql.NullString
+	var weight sql.NullFloat64
+	var sterilizationDate sql.NullTime
+	var healthNotes sql.NullString
 	var speciesName sql.NullString
 	var speciesID sql.NullInt64
 	var breedName sql.NullString
@@ -1402,6 +1420,9 @@ func GetPetByIDHandler(w http.ResponseWriter, r *http.Request) {
 		&gender, &description, &relationship, &createdAt,
 		&color, &fur, &ears, &tail, &size, &specialMarks,
 		&markingDate, &tagNumber, &brandNumber, &chipNumber,
+		&locationType, &locationAddress, &locationCage, &locationContact,
+		&locationPhone, &locationNotes,
+		&weight, &sterilizationDate, &healthNotes,
 		&speciesName, &speciesID, &breedName, &breedID,
 		&ownerName, &ownerID, &ownerEmail, &ownerPhone,
 		&ownerAvatar, &ownerBio, &ownerRole,
@@ -1475,6 +1496,33 @@ func GetPetByIDHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if chipNumber.Valid {
 		pet["chip_number"] = chipNumber.String
+	}
+	if locationType.Valid {
+		pet["location_type"] = locationType.String
+	}
+	if locationAddress.Valid {
+		pet["location_address"] = locationAddress.String
+	}
+	if locationCage.Valid {
+		pet["location_cage"] = locationCage.String
+	}
+	if locationContact.Valid {
+		pet["location_contact"] = locationContact.String
+	}
+	if locationPhone.Valid {
+		pet["location_phone"] = locationPhone.String
+	}
+	if locationNotes.Valid {
+		pet["location_notes"] = locationNotes.String
+	}
+	if weight.Valid {
+		pet["weight"] = weight.Float64
+	}
+	if sterilizationDate.Valid {
+		pet["sterilization_date"] = sterilizationDate.Time
+	}
+	if healthNotes.Valid {
+		pet["health_notes"] = healthNotes.String
 	}
 	if speciesName.Valid {
 		pet["species_name"] = speciesName.String
