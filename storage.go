@@ -45,9 +45,15 @@ func InitS3() error {
 
 	if endpoint == "" || region == "" || bucket == "" || accessKey == "" || secretKey == "" {
 		log.Println("⚠️  S3 configuration incomplete, falling back to local storage")
+		log.Printf("   endpoint=%v, region=%v, bucket=%v, accessKey=%v, secretKey=%v",
+			endpoint != "", region != "", bucket != "", accessKey != "", secretKey != "")
 		useS3 = false
 		return nil
 	}
+
+	// Логируем конфигурацию (без секретного ключа)
+	log.Printf("🔧 S3 Config: endpoint=%s, region=%s, bucket=%s, accessKey=%s (length: %d), secretKey length: %d",
+		endpoint, region, bucket, accessKey, len(accessKey), len(secretKey))
 
 	// Создаем сессию S3
 	sess, err := session.NewSession(&aws.Config{
