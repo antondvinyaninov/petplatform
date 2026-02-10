@@ -4,13 +4,9 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import AdminLayout, { AdminTab } from '../components/admin/AdminLayout';
 import {
-  UsersIcon,
-  DocumentTextIcon,
   ChartBarIcon,
-  DocumentDuplicateIcon,
-  BuildingOfficeIcon,
-  ServerIcon,
-  FlagIcon,
+  BookOpenIcon,
+  HeartIcon,
 } from '@heroicons/react/24/outline';
 
 export default function DashboardLayout({
@@ -72,22 +68,12 @@ export default function DashboardLayout({
 
   useEffect(() => {
     // Определяем активную вкладку по URL
-    if (pathname.includes('/dashboard')) {
-      setActiveTab('dashboard');
-    } else if (pathname.includes('/posts')) {
-      setActiveTab('posts');
-    } else if (pathname.includes('/logs')) {
-      setActiveTab('logs');
-    } else if (pathname.includes('/monitoring')) {
-      setActiveTab('health');
-    } else if (pathname.includes('/organizations')) {
-      setActiveTab('organizations');
-    } else if (pathname.includes('/moderation')) {
-      setActiveTab('moderation');
-    } else if (pathname.includes('/users')) {
-      setActiveTab('users');
+    if (pathname.includes('/breeds')) {
+      setActiveTab('reference');
+    } else if (pathname.includes('/pets')) {
+      setActiveTab('pets');
     } else {
-      setActiveTab('dashboard'); // По умолчанию
+      setActiveTab('dashboard');
     }
   }, [pathname]);
 
@@ -98,34 +84,14 @@ export default function DashboardLayout({
       icon: <ChartBarIcon className="w-5 h-5" />,
     },
     {
-      id: 'users',
-      label: 'Пользователи',
-      icon: <UsersIcon className="w-5 h-5" />,
+      id: 'pets',
+      label: 'Питомцы',
+      icon: <HeartIcon className="w-5 h-5" />,
     },
     {
-      id: 'posts',
-      label: 'Посты',
-      icon: <DocumentTextIcon className="w-5 h-5" />,
-    },
-    {
-      id: 'moderation',
-      label: 'Модерация',
-      icon: <FlagIcon className="w-5 h-5" />,
-    },
-    {
-      id: 'logs',
-      label: 'Логирование',
-      icon: <DocumentDuplicateIcon className="w-5 h-5" />,
-    },
-    {
-      id: 'organizations',
-      label: 'Организации',
-      icon: <BuildingOfficeIcon className="w-5 h-5" />,
-    },
-    {
-      id: 'health',
-      label: 'Мониторинг',
-      icon: <ServerIcon className="w-5 h-5" />,
+      id: 'reference',
+      label: 'Справочник',
+      icon: <BookOpenIcon className="w-5 h-5" />,
     },
   ];
 
@@ -135,12 +101,8 @@ export default function DashboardLayout({
     // Навигация по табам
     const routes: Record<string, string> = {
       dashboard: '/dashboard',
-      users: '/users',
-      posts: '/posts',
-      moderation: '/moderation',
-      logs: '/logs',
-      organizations: '/organizations',
-      health: '/monitoring',
+      reference: '/breeds',
+      pets: '/pets',
     };
 
     if (routes[tabId]) {
@@ -171,8 +133,8 @@ export default function DashboardLayout({
   return (
     <AdminLayout
       logoSrc="/logo.svg"
-      logoText="ЗооАдминка"
-      logoAlt="ЗооПлатформа Админка"
+      logoText="PetID"
+      logoAlt="PetID - База данных питомцев"
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={handleTabChange}

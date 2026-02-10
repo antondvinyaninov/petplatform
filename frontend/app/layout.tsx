@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ЗооАдминка",
-  description: "Панель администратора ЗооПлатформы",
+  title: "PetID - Единая всероссийская база данных домашних животных",
+  description: "Единая всероссийская база данных домашних животных. Цифровой паспорт, медицинские карты, прививки и полная история изменений.",
   icons: {
     icon: '/favicon.svg',
   },

@@ -1,0 +1,53 @@
+# Git
+.git
+.gitignore
+
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Next.js
+frontend/.next/
+frontend/out/
+frontend/build/
+
+# Environment files (will be provided separately)
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env
+
+# Logs
+*.log
+backend.log
+frontend.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Documentation (exclude from Docker image)
+PETID.md
+PETID-RULES.md
+PETID-OWNER-CURATOR-RULES.md
+PETID_API_DOCUMENTATION.md
+DATABASE_SCHEMA.md
+DEPLOY.md
+GITHUB_DEPLOY.md
+ADMIN.md
+MAIN.md
+gateway.md
+
+# Go temporary files
+backend/tmp/
+backend/vendor/
+backend/admin-api
+backend/test-build
+
+# TypeScript build info
+*.tsbuildinfo

@@ -1,42 +1,80 @@
 # Dependencies
 node_modules/
-backend/tmp/
+frontend/node_modules/
 
-# Build outputs
+# Next.js
 frontend/.next/
 frontend/out/
-backend/admin-api
-backend/test-build
+frontend/build/
+frontend/.vercel
 
-# Environment files
+# Production
+/build
+/dist
+
+# Environment variables
 .env
 .env.local
 .env.*.local
 backend/.env
+backend/.env.local
 frontend/.env
 frontend/.env.local
 
 # Logs
 *.log
-backend.log
-frontend.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+backend.log
+frontend.log
+backend/tmp/build-errors.log
 
 # OS
 .DS_Store
 Thumbs.db
-
-# IDE
-.vscode/
-.idea/
 *.swp
 *.swo
 *~
 
-# Testing
-coverage/
+# IDE
+.vscode/
+.idea/
+*.iml
 
-# Misc
+# Project documentation (exclude from git)
+PETID.md
+PETID-RULES.md
+PETID-OWNER-CURATOR-RULES.md
+PETID_API_DOCUMENTATION.md
+DATABASE_SCHEMA.md
+DEPLOY.md
+GITHUB_DEPLOY.md
+ADMIN.md
+MAIN.md
+gateway.md
+
+# Go
+backend/admin-api
+backend/test-build
+backend/tmp/main
+backend/vendor/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# TypeScript
+*.tsbuildinfo
+frontend/tsconfig.tsbuildinfo
+
+# Temporary files
+tmp/
+*.tmp
 .air.toml
+
+# Docker
+# .dockerignore - keep this file in git

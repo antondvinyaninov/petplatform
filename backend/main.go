@@ -77,6 +77,14 @@ func main() {
 	// Stats
 	adminRouter.HandleFunc("/stats/overview", handlers.AdminStatsOverviewHandler).Methods("GET", "OPTIONS")
 
+	// Breeds (Породы)
+	adminRouter.HandleFunc("/breeds", handlers.AdminBreedsHandler).Methods("GET", "POST", "OPTIONS")
+	adminRouter.HandleFunc("/breeds/{id:[0-9]+}", handlers.AdminBreedHandler).Methods("GET", "PUT", "DELETE", "OPTIONS")
+
+	// Pets (Питомцы)
+	adminRouter.HandleFunc("/pets", handlers.AdminPetsHandler).Methods("GET", "POST", "OPTIONS")
+	adminRouter.HandleFunc("/pets/{id:[0-9]+}", handlers.AdminPetHandler).Methods("GET", "PUT", "DELETE", "OPTIONS")
+
 	// Logs
 	adminRouter.HandleFunc("/logs", handlers.AdminLogsHandler).Methods("GET", "OPTIONS")
 	adminRouter.HandleFunc("/logs/stats", handlers.AdminLogsStatsHandler).Methods("GET", "OPTIONS")
