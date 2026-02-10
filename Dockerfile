@@ -19,7 +19,7 @@ COPY backend/ ./
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o owner-cabinet .
 
 # Stage 2: Build Frontend
-FROM node:18-alpine AS frontend-builder
+FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
@@ -49,7 +49,7 @@ EXPOSE 9000
 CMD ["./owner-cabinet"]
 
 # Stage 4: Runtime Frontend
-FROM node:18-alpine AS frontend-runtime
+FROM node:20-alpine AS frontend-runtime
 
 WORKDIR /app
 
