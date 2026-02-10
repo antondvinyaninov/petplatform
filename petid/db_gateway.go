@@ -1337,16 +1337,32 @@ func GetPetByIDHandler(w http.ResponseWriter, r *http.Request) {
 			p.description,
 			p.relationship,
 			p.created_at,
+			p.color,
+			p.fur,
+			p.ears,
+			p.tail,
+			p.size,
+			p.special_marks,
+			p.marking_date,
+			p.tag_number,
+			p.brand_number,
+			p.chip_number,
 			s.name as species_name,
 			s.id as species_id,
 			b.name as breed_name,
 			b.id as breed_id,
 			u.name as owner_name,
-			u.id as owner_id
+			u.id as owner_id,
+			u.email as owner_email,
+			u.phone as owner_phone,
+			u.avatar as owner_avatar,
+			u.bio as owner_bio,
+			COALESCE(ur.role, 'user') as owner_role
 		FROM pets p
 		LEFT JOIN species s ON p.species_id = s.id
 		LEFT JOIN breeds b ON p.breed_id = b.id
 		LEFT JOIN users u ON p.user_id = u.id
+		LEFT JOIN user_roles ur ON u.id = ur.user_id AND ur.is_active = true
 		WHERE p.id = $1`
 
 	var id int
@@ -1359,18 +1375,36 @@ func GetPetByIDHandler(w http.ResponseWriter, r *http.Request) {
 	var description sql.NullString
 	var relationship sql.NullString
 	var createdAt time.Time
+	var color sql.NullString
+	var fur sql.NullString
+	var ears sql.NullString
+	var tail sql.NullString
+	var size sql.NullString
+	var specialMarks sql.NullString
+	var markingDate sql.NullTime
+	var tagNumber sql.NullString
+	var brandNumber sql.NullString
+	var chipNumber sql.NullString
 	var speciesName sql.NullString
 	var speciesID sql.NullInt64
 	var breedName sql.NullString
 	var breedID sql.NullInt64
 	var ownerName sql.NullString
 	var ownerID sql.NullInt64
+	var ownerEmail sql.NullString
+	var ownerPhone sql.NullString
+	var ownerAvatar sql.NullString
+	var ownerBio sql.NullString
+	var ownerRole sql.NullString
 
 	err := db.QueryRow(query, petID).Scan(
 		&id, &name, &birthDate, &ageType, &approximateYears, &approximateMonths,
 		&gender, &description, &relationship, &createdAt,
+		&color, &fur, &ears, &tail, &size, &specialMarks,
+		&markingDate, &tagNumber, &brandNumber, &chipNumber,
 		&speciesName, &speciesID, &breedName, &breedID,
-		&ownerName, &ownerID,
+		&ownerName, &ownerID, &ownerEmail, &ownerPhone,
+		&ownerAvatar, &ownerBio, &ownerRole,
 	)
 
 	if err == sql.ErrNoRows {
@@ -1412,6 +1446,36 @@ func GetPetByIDHandler(w http.ResponseWriter, r *http.Request) {
 	if relationship.Valid {
 		pet["relationship"] = relationship.String
 	}
+	if color.Valid {
+		pet["color"] = color.String
+	}
+	if fur.Valid {
+		pet["fur"] = fur.String
+	}
+	if ears.Valid {
+		pet["ears"] = ears.String
+	}
+	if tail.Valid {
+		pet["tail"] = tail.String
+	}
+	if size.Valid {
+		pet["size"] = size.String
+	}
+	if specialMarks.Valid {
+		pet["special_marks"] = specialMarks.String
+	}
+	if markingDate.Valid {
+		pet["marking_date"] = markingDate.Time
+	}
+	if tagNumber.Valid {
+		pet["tag_number"] = tagNumber.String
+	}
+	if brandNumber.Valid {
+		pet["brand_number"] = brandNumber.String
+	}
+	if chipNumber.Valid {
+		pet["chip_number"] = chipNumber.String
+	}
 	if speciesName.Valid {
 		pet["species_name"] = speciesName.String
 	}
@@ -1429,6 +1493,21 @@ func GetPetByIDHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if ownerID.Valid {
 		pet["owner_id"] = ownerID.Int64
+	}
+	if ownerEmail.Valid {
+		pet["owner_email"] = ownerEmail.String
+	}
+	if ownerPhone.Valid {
+		pet["owner_phone"] = ownerPhone.String
+	}
+	if ownerAvatar.Valid {
+		pet["owner_avatar"] = ownerAvatar.String
+	}
+	if ownerBio.Valid {
+		pet["owner_bio"] = ownerBio.String
+	}
+	if ownerRole.Valid {
+		pet["owner_role"] = ownerRole.String
 	}
 
 	duration := time.Since(startTime)
