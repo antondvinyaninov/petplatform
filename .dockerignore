@@ -2,52 +2,51 @@
 .git
 .gitignore
 
-# Dependencies
-node_modules/
-frontend/node_modules/
-
-# Next.js
-frontend/.next/
-frontend/out/
-frontend/build/
-
-# Environment files (will be provided separately)
-.env
-.env.local
-.env.*.local
-backend/.env
-frontend/.env
-
 # Logs
 *.log
 backend.log
 frontend.log
 
-# OS
+# Environment files (будут монтироваться отдельно)
+.env
+.env.local
+.env.development
+.env.production
+
+# OS files
 .DS_Store
 Thumbs.db
 
 # IDE
-.vscode/
-.idea/
+.vscode
+.idea
+*.swp
+*.swo
 
-# Documentation (exclude from Docker image)
-PETID.md
-PETID-RULES.md
-PETID-OWNER-CURATOR-RULES.md
-PETID_API_DOCUMENTATION.md
-DATABASE_SCHEMA.md
-DEPLOY.md
-GITHUB_DEPLOY.md
-ADMIN.md
-MAIN.md
-gateway.md
-
-# Go temporary files
+# Backend
 backend/tmp/
-backend/vendor/
-backend/admin-api
-backend/test-build
+backend/*.exe
+backend/*.dll
+backend/*.so
+backend/*.dylib
 
-# TypeScript build info
-*.tsbuildinfo
+# Frontend
+frontend/.next/
+frontend/out/
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+frontend/.turbo/
+
+# Documentation
+*.md
+!README.md
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Build artifacts
+dist/
+build/
