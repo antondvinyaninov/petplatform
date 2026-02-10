@@ -80,6 +80,8 @@ go run main.go
 
 Backend запустится на `http://localhost:9000`
 
+**Production URL:** `https://owner.zooplatforma.ru`
+
 ### Frontend
 
 ```bash
@@ -99,6 +101,8 @@ npm run dev
 ```
 
 Frontend запустится на `http://localhost:4000`
+
+**Production URL:** `https://owner.zooplatforma.ru`
 
 ## 🔧 Разработка
 
@@ -238,7 +242,7 @@ docker run -p 4000:4000 owner-cabinet-frontend
 PORT=9000                                    # Порт backend сервера
 GATEWAY_URL=https://api.zooplatforma.ru     # URL Gateway API
 JWT_SECRET=your-secret-key                   # Секрет для JWT (должен совпадать с Gateway)
-CORS_ORIGINS=http://localhost:4000          # Разрешенные домены для CORS
+CORS_ORIGINS=https://owner.zooplatforma.ru  # Разрешенные домены для CORS
 ```
 
 ### Frontend (.env.local)
@@ -272,3 +276,5 @@ Proprietary - ЗооПлатформа © 2026
 ## 👥 Контакты
 
 Для вопросов и поддержки: https://zooplatforma.ru
+
+**Production:** https://owner.zooplatforma.ru
