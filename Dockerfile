@@ -35,34 +35,51 @@ COPY frontend/ ./
 # Собираем Next.js приложение
 RUN npm run build
 
-# Stage 3: Runtime Backend
-FROM alpine:latest AS backend-runtime
+# Stage 3: Runtime - Backend + Frontend в одном контейнере
+FROM node:20-alpine
 
-RUN apk --no-cache add ca-certificates tzdata
-
-WORKDIR /root/
-
-# Копируем бинарник из builder
-COPY --from=backend-builder /app/backend/owner-cabinet .
-COPY --from=backend-builder /app/backend/.env.example .env.example
-
-EXPOSE 9000
-
-CMD ["./owner-cabinet"]
-
-# Stage 4: Runtime Frontend
-FROM node:20-alpine AS frontend-runtime
+# Установка необходимых пакетов
+RUN apk --no-cache add ca-certificates tzdata supervisor
 
 WORKDIR /app
 
-# Копируем package.json для установки только production зависимостей
-COPY frontend/package*.json ./
-RUN npm ci --omit=dev
+# Копируем backend бинарник
+COPY --from=backend-builder /app/backend/owner-cabinet /app/backend/
+COPY --from=backend-builder /app/backend/.env.example /app/backend/.env.example
 
-# Копируем собранное приложение
-COPY --from=frontend-builder /app/frontend/.next ./.next
-COPY --from=frontend-builder /app/frontend/public ./public
+# Копируем frontend
+COPY --from=frontend-builder /app/frontend/.next /app/frontend/.next
+COPY --from=frontend-builder /app/frontend/node_modules /app/frontend/node_modules
+COPY --from=frontend-builder /app/frontend/package.json /app/frontend/package.json
+COPY --from=frontend-builder /app/frontend/public /app/frontend/public
 
-EXPOSE 4000
+# Создаем конфигурацию supervisord
+RUN echo '[supervisord]' > /etc/supervisord.conf && \
+    echo 'nodaemon=true' >> /etc/supervisord.conf && \
+    echo 'user=root' >> /etc/supervisord.conf && \
+    echo '' >> /etc/supervisord.conf && \
+    echo '[program:backend]' >> /etc/supervisord.conf && \
+    echo 'command=/app/backend/owner-cabinet' >> /etc/supervisord.conf && \
+    echo 'directory=/app/backend' >> /etc/supervisord.conf && \
+    echo 'autostart=true' >> /etc/supervisord.conf && \
+    echo 'autorestart=true' >> /etc/supervisord.conf && \
+    echo 'stdout_logfile=/dev/stdout' >> /etc/supervisord.conf && \
+    echo 'stdout_logfile_maxbytes=0' >> /etc/supervisord.conf && \
+    echo 'stderr_logfile=/dev/stderr' >> /etc/supervisord.conf && \
+    echo 'stderr_logfile_maxbytes=0' >> /etc/supervisord.conf && \
+    echo '' >> /etc/supervisord.conf && \
+    echo '[program:frontend]' >> /etc/supervisord.conf && \
+    echo 'command=npm start' >> /etc/supervisord.conf && \
+    echo 'directory=/app/frontend' >> /etc/supervisord.conf && \
+    echo 'autostart=true' >> /etc/supervisord.conf && \
+    echo 'autorestart=true' >> /etc/supervisord.conf && \
+    echo 'stdout_logfile=/dev/stdout' >> /etc/supervisord.conf && \
+    echo 'stdout_logfile_maxbytes=0' >> /etc/supervisord.conf && \
+    echo 'stderr_logfile=/dev/stderr' >> /etc/supervisord.conf && \
+    echo 'stderr_logfile_maxbytes=0' >> /etc/supervisord.conf
 
-CMD ["npm", "start"]
+# Открываем порты
+EXPOSE 9000 4000
+
+# Запускаем supervisord для управления обоими процессами
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
