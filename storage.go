@@ -82,10 +82,26 @@ func UploadPetPhoto(file multipart.File, header *multipart.FileHeader, petID, us
 		return "", fmt.Errorf("S3 is not enabled")
 	}
 
+	// Определяем Content-Type по расширению файла
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	contentType := getContentTypeFromExtension(ext)
+
+	// Если не удалось определить по расширению, пробуем из заголовка
+	if contentType == "" {
+		contentType = header.Header.Get("Content-Type")
+	}
+
 	// Валидация типа файла
-	contentType := header.Header.Get("Content-Type")
-	if !isValidImageType(contentType) {
-		return "", fmt.Errorf("invalid file type: %s. Allowed: JPEG, PNG, WebP", contentType)
+	if !isValidImageType(contentType) && !isValidImageExtension(ext) {
+		return "", fmt.Errorf("invalid file type: %s (extension: %s). Allowed: JPEG, PNG, WebP", contentType, ext)
+	}
+
+	// Если Content-Type не определен, устанавливаем по расширению
+	if contentType == "" || contentType == "application/octet-stream" {
+		contentType = getContentTypeFromExtension(ext)
+		if contentType == "" {
+			contentType = "image/jpeg" // По умолчанию
+		}
 	}
 
 	// Валидация размера (5MB)
@@ -93,8 +109,7 @@ func UploadPetPhoto(file multipart.File, header *multipart.FileHeader, petID, us
 		return "", fmt.Errorf("file too large: %d bytes. Maximum: 5MB", header.Size)
 	}
 
-	// Генерируем имя файла
-	ext := filepath.Ext(header.Filename)
+	// Генерируем имя файла с правильным расширением
 	if ext == "" {
 		ext = getExtensionFromContentType(contentType)
 	}
@@ -154,6 +169,34 @@ func isValidImageType(contentType string) bool {
 		}
 	}
 	return false
+}
+
+// isValidImageExtension проверяет допустимое расширение файла
+func isValidImageExtension(ext string) bool {
+	ext = strings.ToLower(ext)
+	validExtensions := []string{".jpg", ".jpeg", ".png", ".webp"}
+
+	for _, validExt := range validExtensions {
+		if ext == validExt {
+			return true
+		}
+	}
+	return false
+}
+
+// getContentTypeFromExtension возвращает Content-Type по расширению файла
+func getContentTypeFromExtension(ext string) string {
+	ext = strings.ToLower(ext)
+	switch ext {
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".png":
+		return "image/png"
+	case ".webp":
+		return "image/webp"
+	default:
+		return ""
+	}
 }
 
 // getExtensionFromContentType возвращает расширение файла по Content-Type
