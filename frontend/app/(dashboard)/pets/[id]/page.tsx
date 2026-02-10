@@ -260,7 +260,7 @@ export default function PetViewPage() {
       location_phone: pet.location_phone || '',
       location_notes: pet.location_notes || '',
       // Здоровье
-      weight: pet.weight || undefined,
+      weight: pet.weight ?? '',
       sterilization_date: pet.sterilization_date ? pet.sterilization_date.split('T')[0] : '',
       health_notes: pet.health_notes || '',
       is_sterilized: !!pet.sterilization_date,
