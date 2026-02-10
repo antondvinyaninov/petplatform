@@ -614,6 +614,7 @@ func GetPetsHandler(w http.ResponseWriter, r *http.Request) {
 			p.description,
 			p.relationship,
 			p.created_at,
+			p.photo_url,
 			s.name as species_name,
 			s.id as species_id,
 			b.name as breed_name,
@@ -674,6 +675,7 @@ func GetPetsHandler(w http.ResponseWriter, r *http.Request) {
 		var description sql.NullString
 		var relationship sql.NullString
 		var createdAt time.Time
+		var photoURL sql.NullString
 		var speciesName sql.NullString
 		var speciesID sql.NullInt64
 		var breedName sql.NullString
@@ -683,7 +685,7 @@ func GetPetsHandler(w http.ResponseWriter, r *http.Request) {
 
 		err := rows.Scan(
 			&id, &name, &birthDate, &ageType, &approximateYears, &approximateMonths,
-			&gender, &description, &relationship, &createdAt,
+			&gender, &description, &relationship, &createdAt, &photoURL,
 			&speciesName, &speciesID, &breedName, &breedID,
 			&ownerName, &ownerID,
 		)
@@ -718,6 +720,9 @@ func GetPetsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		if relationship.Valid {
 			pet["relationship"] = relationship.String
+		}
+		if photoURL.Valid {
+			pet["photo_url"] = photoURL.String
 		}
 		if speciesName.Valid {
 			pet["species_name"] = speciesName.String
