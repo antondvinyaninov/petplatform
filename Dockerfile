@@ -25,7 +25,9 @@ WORKDIR /app/frontend
 
 # Копируем package.json и package-lock.json
 COPY frontend/package*.json ./
-RUN npm ci --only=production
+
+# Устанавливаем ВСЕ зависимости (включая devDependencies для сборки)
+RUN npm ci
 
 # Копируем исходный код
 COPY frontend/ ./
@@ -53,10 +55,12 @@ FROM node:20-alpine AS frontend-runtime
 
 WORKDIR /app
 
+# Копируем package.json для установки только production зависимостей
+COPY frontend/package*.json ./
+RUN npm ci --omit=dev
+
 # Копируем собранное приложение
 COPY --from=frontend-builder /app/frontend/.next ./.next
-COPY --from=frontend-builder /app/frontend/node_modules ./node_modules
-COPY --from=frontend-builder /app/frontend/package.json ./package.json
 COPY --from=frontend-builder /app/frontend/public ./public
 
 EXPOSE 4000
