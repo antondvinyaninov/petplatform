@@ -101,7 +101,7 @@ export default function PetViewPage() {
     location_phone: '',
     location_notes: '',
     // Здоровье
-    weight: undefined,
+    weight: '' as string | number,
     sterilization_date: '',
     health_notes: '',
     is_sterilized: false,
@@ -159,7 +159,7 @@ export default function PetViewPage() {
           location_phone: data.pet.location_phone || '',
           location_notes: data.pet.location_notes || '',
           // Здоровье
-          weight: data.pet.weight || undefined,
+          weight: data.pet.weight ?? '',
           sterilization_date: data.pet.sterilization_date ? data.pet.sterilization_date.split('T')[0] : '',
           health_notes: data.pet.health_notes || '',
           is_sterilized: !!data.pet.sterilization_date,
@@ -369,7 +369,7 @@ export default function PetViewPage() {
                   location_contact: pet.location_contact || '',
                   location_phone: pet.location_phone || '',
                   location_notes: pet.location_notes || '',
-                  weight: pet.weight || undefined,
+                  weight: pet.weight ?? '',
                   sterilization_date: pet.sterilization_date ? pet.sterilization_date.split('T')[0] : '',
                   health_notes: pet.health_notes || '',
                   is_sterilized: !!pet.sterilization_date,
