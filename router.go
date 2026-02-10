@@ -67,6 +67,9 @@ func SetupRouter() *mux.Router {
 	// Activity stats endpoint (требует авторизацию)
 	apiRouter.HandleFunc("/activity/stats", ActivityStatsHandler).Methods("GET", "OPTIONS")
 
+	// Media upload endpoints (должны быть ПЕРЕД общим /media/*)
+	apiRouter.HandleFunc("/media/upload/pet-photo", UploadPetPhotoHandler).Methods("POST", "OPTIONS")
+
 	// Chunked upload endpoints (должны быть ПЕРВЫМИ для правильной маршрутизации)
 	apiRouter.PathPrefix("/media/chunked").Handler(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/media").Handler(ProxyHandler(mainService))

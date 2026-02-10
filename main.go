@@ -35,6 +35,12 @@ func main() {
 	// Инициализируем petid с подключением к БД
 	petid.SetDB(db)
 
+	// Инициализируем S3 хранилище
+	if err := InitS3(); err != nil {
+		log.Printf("⚠️  S3 initialization failed: %v", err)
+		log.Println("📁 Falling back to local file storage")
+	}
+
 	// Инициализируем сервисы
 	InitServices()
 
