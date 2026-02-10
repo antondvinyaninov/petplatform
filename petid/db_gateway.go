@@ -1037,6 +1037,7 @@ func UpdatePetHandler(w http.ResponseWriter, r *http.Request) {
 		Gender            *string `json:"gender"`
 		Description       *string `json:"description"`
 		Relationship      *string `json:"relationship"`
+		PhotoURL          *string `json:"photo_url"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -1140,6 +1141,11 @@ func UpdatePetHandler(w http.ResponseWriter, r *http.Request) {
 	if req.Relationship != nil {
 		updates = append(updates, fmt.Sprintf("relationship = $%d", argIndex))
 		args = append(args, *req.Relationship)
+		argIndex++
+	}
+	if req.PhotoURL != nil {
+		updates = append(updates, fmt.Sprintf("photo_url = $%d", argIndex))
+		args = append(args, *req.PhotoURL)
 		argIndex++
 	}
 
