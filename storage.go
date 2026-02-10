@@ -110,9 +110,9 @@ func UploadPetPhoto(file multipart.File, header *multipart.FileHeader, petID, us
 		}
 	}
 
-	// Валидация размера (5MB)
-	if header.Size > 5*1024*1024 {
-		return "", fmt.Errorf("file too large: %d bytes. Maximum: 5MB", header.Size)
+	// Валидация размера (15MB)
+	if header.Size > 15*1024*1024 {
+		return "", fmt.Errorf("file too large: %d bytes. Maximum: 15MB", header.Size)
 	}
 
 	// Генерируем имя файла с правильным расширением

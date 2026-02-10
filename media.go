@@ -21,8 +21,8 @@ func UploadPetPhotoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Парсим multipart form (максимум 10MB в памяти)
-	if err := r.ParseMultipartForm(10 << 20); err != nil {
+	// Парсим multipart form (максимум 20MB в памяти)
+	if err := r.ParseMultipartForm(20 << 20); err != nil {
 		log.Printf("❌ [Media] Failed to parse multipart form: %v", err)
 		respondJSON(w, map[string]interface{}{
 			"success": false,
