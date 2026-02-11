@@ -13,14 +13,47 @@ import (
 
 // Pet представляет питомца в посте
 type Pet struct {
-	ID          int     `json:"id"`
-	Name        string  `json:"name"`
-	Species     string  `json:"species"`
-	Breed       *string `json:"breed,omitempty"`
-	Gender      *string `json:"gender,omitempty"`
-	PhotoURL    *string `json:"photo_url,omitempty"`
-	BirthDate   *string `json:"birth_date,omitempty"`
-	Description *string `json:"description,omitempty"`
+	ID                int      `json:"id"`
+	UserID            int      `json:"user_id"`
+	Name              string   `json:"name"`
+	Species           string   `json:"species"`
+	SpeciesID         *int     `json:"species_id,omitempty"`
+	Breed             *string  `json:"breed,omitempty"`
+	BreedID           *int     `json:"breed_id,omitempty"`
+	Gender            *string  `json:"gender,omitempty"`
+	BirthDate         *string  `json:"birth_date,omitempty"`
+	AgeType           *string  `json:"age_type,omitempty"`
+	ApproximateYears  *int     `json:"approximate_years,omitempty"`
+	ApproximateMonths *int     `json:"approximate_months,omitempty"`
+	Age               *int     `json:"age,omitempty"`
+	Weight            *float64 `json:"weight,omitempty"`
+	Color             *string  `json:"color,omitempty"`
+	Fur               *string  `json:"fur,omitempty"`
+	Ears              *string  `json:"ears,omitempty"`
+	Tail              *string  `json:"tail,omitempty"`
+	Size              *string  `json:"size,omitempty"`
+	SpecialMarks      *string  `json:"special_marks,omitempty"`
+	PhotoURL          *string  `json:"photo_url,omitempty"`
+	Photo             *string  `json:"photo,omitempty"`
+	Description       *string  `json:"description,omitempty"`
+	Relationship      *string  `json:"relationship,omitempty"`
+	Microchip         *string  `json:"microchip,omitempty"`
+	ChipNumber        *string  `json:"chip_number,omitempty"`
+	TagNumber         *string  `json:"tag_number,omitempty"`
+	BrandNumber       *string  `json:"brand_number,omitempty"`
+	MarkingDate       *string  `json:"marking_date,omitempty"`
+	SterilizationDate *string  `json:"sterilization_date,omitempty"`
+	LocationType      *string  `json:"location_type,omitempty"`
+	LocationAddress   *string  `json:"location_address,omitempty"`
+	LocationCage      *string  `json:"location_cage,omitempty"`
+	LocationContact   *string  `json:"location_contact,omitempty"`
+	LocationPhone     *string  `json:"location_phone,omitempty"`
+	LocationNotes     *string  `json:"location_notes,omitempty"`
+	Location          *string  `json:"location,omitempty"`
+	HealthNotes       *string  `json:"health_notes,omitempty"`
+	CuratorID         *int     `json:"curator_id,omitempty"`
+	CreatedAt         *string  `json:"created_at,omitempty"`
+	UpdatedAt         *string  `json:"updated_at,omitempty"`
 }
 
 // PostsProxyHandler проксирует запросы к постам и добавляет данные питомцев
@@ -200,13 +233,46 @@ func loadPetsByIDs(petIDs []int) []Pet {
 	query := fmt.Sprintf(`
 		SELECT 
 			p.id,
+			p.user_id,
 			p.name,
 			COALESCE(s.name, p.species, '') as species,
+			p.species_id,
 			COALESCE(b.name, p.breed) as breed,
+			p.breed_id,
 			p.gender,
-			p.photo_url,
 			p.birth_date,
-			p.description
+			p.age_type,
+			p.approximate_years,
+			p.approximate_months,
+			p.age,
+			p.weight,
+			p.color,
+			p.fur,
+			p.ears,
+			p.tail,
+			p.size,
+			p.special_marks,
+			p.photo_url,
+			p.photo,
+			p.description,
+			p.relationship,
+			p.microchip,
+			p.chip_number,
+			p.tag_number,
+			p.brand_number,
+			p.marking_date,
+			p.sterilization_date,
+			p.location_type,
+			p.location_address,
+			p.location_cage,
+			p.location_contact,
+			p.location_phone,
+			p.location_notes,
+			p.location,
+			p.health_notes,
+			p.curator_id,
+			p.created_at,
+			p.updated_at
 		FROM pets p
 		LEFT JOIN species s ON p.species_id = s.id
 		LEFT JOIN breeds b ON p.breed_id = b.id
@@ -223,17 +289,56 @@ func loadPetsByIDs(petIDs []int) []Pet {
 	var pets []Pet
 	for rows.Next() {
 		var pet Pet
-		var breed, gender, photoURL, birthDate, description sql.NullString
+		var breed, gender, birthDate, ageType, color, fur, ears, tail, size, specialMarks sql.NullString
+		var photoURL, photo, description, relationship, microchip, chipNumber, tagNumber, brandNumber sql.NullString
+		var markingDate, sterilizationDate, locationType, locationAddress, locationCage sql.NullString
+		var locationContact, locationPhone, locationNotes, location, healthNotes sql.NullString
+		var speciesID, breedID, approximateYears, approximateMonths, age, curatorID sql.NullInt64
+		var weight sql.NullFloat64
+		var createdAt, updatedAt sql.NullTime
 
 		err := rows.Scan(
 			&pet.ID,
+			&pet.UserID,
 			&pet.Name,
 			&pet.Species,
+			&speciesID,
 			&breed,
+			&breedID,
 			&gender,
-			&photoURL,
 			&birthDate,
+			&ageType,
+			&approximateYears,
+			&approximateMonths,
+			&age,
+			&weight,
+			&color,
+			&fur,
+			&ears,
+			&tail,
+			&size,
+			&specialMarks,
+			&photoURL,
+			&photo,
 			&description,
+			&relationship,
+			&microchip,
+			&chipNumber,
+			&tagNumber,
+			&brandNumber,
+			&markingDate,
+			&sterilizationDate,
+			&locationType,
+			&locationAddress,
+			&locationCage,
+			&locationContact,
+			&locationPhone,
+			&locationNotes,
+			&location,
+			&healthNotes,
+			&curatorID,
+			&createdAt,
+			&updatedAt,
 		)
 
 		if err != nil {
@@ -241,20 +346,128 @@ func loadPetsByIDs(petIDs []int) []Pet {
 			continue
 		}
 
+		// Заполняем nullable поля
+		if speciesID.Valid {
+			id := int(speciesID.Int64)
+			pet.SpeciesID = &id
+		}
+		if breedID.Valid {
+			id := int(breedID.Int64)
+			pet.BreedID = &id
+		}
 		if breed.Valid {
 			pet.Breed = &breed.String
 		}
 		if gender.Valid {
 			pet.Gender = &gender.String
 		}
+		if birthDate.Valid {
+			str := birthDate.String
+			pet.BirthDate = &str
+		}
+		if ageType.Valid {
+			pet.AgeType = &ageType.String
+		}
+		if approximateYears.Valid {
+			years := int(approximateYears.Int64)
+			pet.ApproximateYears = &years
+		}
+		if approximateMonths.Valid {
+			months := int(approximateMonths.Int64)
+			pet.ApproximateMonths = &months
+		}
+		if age.Valid {
+			ageVal := int(age.Int64)
+			pet.Age = &ageVal
+		}
+		if weight.Valid {
+			pet.Weight = &weight.Float64
+		}
+		if color.Valid {
+			pet.Color = &color.String
+		}
+		if fur.Valid {
+			pet.Fur = &fur.String
+		}
+		if ears.Valid {
+			pet.Ears = &ears.String
+		}
+		if tail.Valid {
+			pet.Tail = &tail.String
+		}
+		if size.Valid {
+			pet.Size = &size.String
+		}
+		if specialMarks.Valid {
+			pet.SpecialMarks = &specialMarks.String
+		}
 		if photoURL.Valid {
 			pet.PhotoURL = &photoURL.String
 		}
-		if birthDate.Valid {
-			pet.BirthDate = &birthDate.String
+		if photo.Valid {
+			pet.Photo = &photo.String
 		}
 		if description.Valid {
 			pet.Description = &description.String
+		}
+		if relationship.Valid {
+			pet.Relationship = &relationship.String
+		}
+		if microchip.Valid {
+			pet.Microchip = &microchip.String
+		}
+		if chipNumber.Valid {
+			pet.ChipNumber = &chipNumber.String
+		}
+		if tagNumber.Valid {
+			pet.TagNumber = &tagNumber.String
+		}
+		if brandNumber.Valid {
+			pet.BrandNumber = &brandNumber.String
+		}
+		if markingDate.Valid {
+			str := markingDate.String
+			pet.MarkingDate = &str
+		}
+		if sterilizationDate.Valid {
+			str := sterilizationDate.String
+			pet.SterilizationDate = &str
+		}
+		if locationType.Valid {
+			pet.LocationType = &locationType.String
+		}
+		if locationAddress.Valid {
+			pet.LocationAddress = &locationAddress.String
+		}
+		if locationCage.Valid {
+			pet.LocationCage = &locationCage.String
+		}
+		if locationContact.Valid {
+			pet.LocationContact = &locationContact.String
+		}
+		if locationPhone.Valid {
+			pet.LocationPhone = &locationPhone.String
+		}
+		if locationNotes.Valid {
+			pet.LocationNotes = &locationNotes.String
+		}
+		if location.Valid {
+			pet.Location = &location.String
+		}
+		if healthNotes.Valid {
+			pet.HealthNotes = &healthNotes.String
+		}
+		if curatorID.Valid {
+			id := int(curatorID.Int64)
+			pet.CuratorID = &id
+		}
+		if createdAt.Valid {
+			str := createdAt.Time.Format(time.RFC3339)
+			pet.CreatedAt = &str
+		}
+		if updatedAt.Valid {
+			str := updatedAt.Time.Format(time.RFC3339)
+			pet.UpdatedAt = &str
 		}
 
 		pets = append(pets, pet)
