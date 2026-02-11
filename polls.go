@@ -293,27 +293,6 @@ func DeletePollVoteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Пытаемся получить allow_vote_changes если поле существует
-	var allowVoteChanges bool = true // По умолчанию разрешаем изменения
-	var allowVoteChangesNull sql.NullBool
-	db.QueryRow(`
-		SELECT CASE WHEN EXISTS(
-			SELECT 1 FROM information_schema.columns 
-			WHERE table_name = 'polls' AND column_name = 'allow_vote_changes'
-		) THEN (SELECT allow_vote_changes FROM polls WHERE id = $1)
-		ELSE NULL END
-	`, pollID).Scan(&allowVoteChangesNull)
-
-	if allowVoteChangesNull.Valid {
-		allowVoteChanges = allowVoteChangesNull.Bool
-	}
-
-	// Проверка что изменения разрешены
-	if !allowVoteChanges {
-		respondError(w, "Vote changes are not allowed for this poll", http.StatusBadRequest)
-		return
-	}
-
 	// Начинаем транзакцию
 	tx, err := db.Begin()
 	if err != nil {
