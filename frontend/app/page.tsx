@@ -141,36 +141,38 @@ export default function HomePage() {
                 <HeartIcon className="w-8 h-8 text-blue-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                Карточки подопечных
+                Карточки курируемых животных
               </h3>
               <p className="text-gray-600">
-                Создавайте подробные карточки для каждого подопечного с фото, породой, возрастом и особенностями
+                Прозрачная система работы с подопечными: подробные карточки с фото, породой, возрастом и особенностями
               </p>
             </div>
 
             {/* Feature 2 */}
             <div className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <DocumentTextIcon className="w-8 h-8 text-green-600" />
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                Медицинские записи
+                Организация сборов
               </h3>
               <p className="text-gray-600">
-                Ведите историю посещений ветеринара, прививок и обработок от паразитов
+                Максимально прозрачные и понятные сборы для всех участников с детальной отчётностью
               </p>
             </div>
 
             {/* Feature 3 */}
             <div className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow">
               <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <ClockIcon className="w-8 h-8 text-purple-600" />
+                <DocumentTextIcon className="w-8 h-8 text-purple-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                Напоминания
+                Медицинские записи
               </h3>
               <p className="text-gray-600">
-                Получайте уведомления о предстоящих прививках и плановых обработках
+                Ведите историю посещений ветеринара, прививок и обработок от паразитов
               </p>
             </div>
 
@@ -193,10 +195,10 @@ export default function HomePage() {
                 <MagnifyingGlassIcon className="w-8 h-8 text-orange-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                Ежедневный уход
+                Каталог на пристройство
               </h3>
               <p className="text-gray-600">
-                Отмечайте кормление, выгул и другие важные моменты в уходе за подопечными
+                Из карточек подопечных формируется основной каталог животных на пристройство
               </p>
             </div>
 
@@ -204,14 +206,14 @@ export default function HomePage() {
             <div className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow">
               <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                История изменений
+                Автопубликация постов
               </h3>
               <p className="text-gray-600">
-                Полная хронология жизни подопечного с важными событиями и датами
+                Автоматическое создание постов для пристройства на других платформах и в социальных сетях
               </p>
             </div>
           </div>
