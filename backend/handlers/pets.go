@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -30,19 +31,39 @@ func AdminPetsHandler(w http.ResponseWriter, r *http.Request) {
 
 		endpoint := fmt.Sprintf("/api/petid/pets?%s", query.Encode())
 
-		fmt.Printf("📝 [Pets] Fetching pets for user_id=%d\n", userID)
+		fmt.Printf("📝 [Pets] Fetching pets for user_id=%d (owners only)\n", userID)
 		data, err := client.Get(endpoint)
-
-		// Логируем первые 500 символов ответа для отладки
-		if len(data) > 0 {
-			preview := string(data)
-			if len(preview) > 500 {
-				preview = preview[:500] + "..."
-			}
-			fmt.Printf("📦 [Pets] Gateway response preview: %s\n", preview)
+		if err != nil {
+			proxyGatewayResponse(w, data, err)
+			return
 		}
 
-		proxyGatewayResponse(w, data, err)
+		// Парсим ответ и фильтруем только владельцев
+		var response struct {
+			Success bool                     `json:"success"`
+			Pets    []map[string]interface{} `json:"pets"`
+		}
+
+		if err := parseJSON(data, &response); err != nil {
+			fmt.Printf("❌ [Pets] Failed to parse response: %v\n", err)
+			proxyGatewayResponse(w, data, nil)
+			return
+		}
+
+		// Фильтруем только питомцев где relationship = "owner"
+		var ownerPets []map[string]interface{}
+		for _, pet := range response.Pets {
+			if relationship, ok := pet["relationship"].(string); ok && relationship == "owner" {
+				ownerPets = append(ownerPets, pet)
+			}
+		}
+
+		fmt.Printf("📊 [Pets] Total pets: %d, Owner pets: %d\n", len(response.Pets), len(ownerPets))
+
+		// Возвращаем отфильтрованный список
+		response.Pets = ownerPets
+		filteredData, _ := json.Marshal(response)
+		proxyGatewayResponse(w, filteredData, nil)
 
 	case http.MethodPost:
 		// Создание нового питомца - автоматически привязываем к текущему пользователю
