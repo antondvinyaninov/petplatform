@@ -135,7 +135,7 @@ func SetupRouter() *mux.Router {
 
 	// Main Backend endpoints (общие маршруты)
 	// ВАЖНО: НЕ используем PathPrefix для /organizations, чтобы не конфликтовать с публичным GET
-	apiRouter.PathPrefix("/posts").Handler(ProxyHandler(mainService))
+	apiRouter.PathPrefix("/posts").HandlerFunc(PostsProxyHandler)
 	apiRouter.PathPrefix("/profile").Handler(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/users").Handler(ProxyHandler(mainService))
 	apiRouter.PathPrefix("/pets").Handler(ProxyHandler(mainService))
