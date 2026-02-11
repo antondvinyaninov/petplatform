@@ -1,10 +1,44 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import AuthForm from '../components/AuthForm';
 
 export default function AdminAuth() {
   const router = useRouter();
+  const [checking, setChecking] = useState(true);
+
+  // Устанавливаем title страницы
+  useEffect(() => {
+    document.title = 'Вход в кабинет зоопомощника - ЗооПлатформа';
+  }, []);
+
+  // Проверяем авторизацию при загрузке страницы
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/admin/auth/me', {
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.user) {
+          // Пользователь уже авторизован - перенаправляем в кабинет
+          console.log('✅ User already authenticated, redirecting to /pets');
+          router.push('/pets');
+          return;
+        }
+      }
+    } catch (err) {
+      console.log('Not authenticated, showing login form');
+    } finally {
+      setChecking(false);
+    }
+  };
 
   const handleSubmit = async (data: { email: string; password: string }) => {
     try {
@@ -38,16 +72,25 @@ export default function AdminAuth() {
     }
   };
 
+  // Показываем загрузку пока проверяем авторизацию
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <div className="text-gray-500">Проверка авторизации...</div>
+      </div>
+    );
+  }
+
   return (
     <AuthForm
       mode="login"
       showTabs={false}
       onSubmit={handleSubmit}
       logoText="ЗооПлатформа"
-      logoAlt="ЗооПлатформа - Кабинет владельца"
-      subtitle="Войдите в кабинет владельца животных"
-      infoTitle="🐾 Кабинет владельца"
-      infoText="Управляйте информацией о ваших питомцах"
+      logoAlt="ЗооПлатформа - Кабинет зоопомощника"
+      subtitle="Войдите в кабинет зоопомощника"
+      infoTitle="🐾 Кабинет зоопомощника"
+      infoText="Управляйте информацией о ваших подопечных"
     />
   );
 }

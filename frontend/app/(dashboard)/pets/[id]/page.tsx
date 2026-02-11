@@ -80,7 +80,7 @@ export default function PetViewPage() {
     approximate_months: 0,
     gender: 'male',
     description: '',
-    relationship: 'owner' as 'owner' | 'curator',
+    relationship: 'curator' as 'owner' | 'curator',
     // Внешний вид
     color: '',
     fur: '',
@@ -117,6 +117,13 @@ export default function PetViewPage() {
     fetchBreeds();
   }, [petId]);
 
+  // Обновляем title при загрузке питомца
+  useEffect(() => {
+    if (pet) {
+      document.title = `${pet.name} - Мои подопечные`;
+    }
+  }, [pet]);
+
   const fetchPet = async () => {
     try {
       setLoading(true);
@@ -138,7 +145,7 @@ export default function PetViewPage() {
           approximate_months: data.pet.approximate_months || 0,
           gender: data.pet.gender || 'male',
           description: data.pet.description || '',
-          relationship: (data.pet.relationship as 'owner' | 'curator') || 'owner',
+          relationship: (data.pet.relationship as 'owner' | 'curator') || 'curator',
           // Внешний вид
           color: data.pet.color || '',
           fur: data.pet.fur || '',
@@ -239,7 +246,7 @@ export default function PetViewPage() {
       approximate_months: pet.approximate_months || 0,
       gender: pet.gender || 'male',
       description: pet.description || '',
-      relationship: (pet.relationship as 'owner' | 'curator') || 'owner',
+      relationship: (pet.relationship as 'owner' | 'curator') || 'curator',
       // Внешний вид
       color: pet.color || '',
       fur: pet.fur || '',
@@ -352,7 +359,7 @@ export default function PetViewPage() {
                   approximate_months: pet.approximate_months || 0,
                   gender: pet.gender || 'male',
                   description: pet.description || '',
-                  relationship: (pet.relationship as 'owner' | 'curator') || 'owner',
+                  relationship: (pet.relationship as 'owner' | 'curator') || 'curator',
                   color: pet.color || '',
                   fur: pet.fur || '',
                   ears: pet.ears || '',

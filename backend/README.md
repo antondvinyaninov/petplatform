@@ -1,14 +1,14 @@
-# Admin Backend API
+# Volunteer Cabinet Backend API
 
-Backend для админ-панели ЗооПлатформы. Работает через Gateway API.
+Backend для кабинета зоопомощника ЗооПлатформы. Работает через Gateway API.
 
 ## Архитектура
 
 ```
-Admin Frontend (4000) → Admin Backend (9000) → Gateway (80) → Main Service / Other Services
+Volunteer Frontend (4000) → Volunteer Backend (9000) → Gateway (80) → Main Service / Other Services
 ```
 
-Admin Backend не имеет прямого доступа к БД, все запросы проксируются через Gateway.
+Volunteer Backend не имеет прямого доступа к БД, все запросы проксируются через Gateway.
 
 ## Установка
 

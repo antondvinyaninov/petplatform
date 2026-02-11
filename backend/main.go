@@ -62,6 +62,10 @@ func main() {
 	protectedRouter.HandleFunc("/pets", handlers.AdminPetsHandler).Methods("GET", "POST", "OPTIONS")
 	protectedRouter.HandleFunc("/pets/{id:[0-9]+}", handlers.AdminPetHandler).Methods("GET", "PUT", "DELETE", "OPTIONS")
 	protectedRouter.HandleFunc("/pets/{id:[0-9]+}/photo", handlers.UploadPetPhotoHandler).Methods("POST", "OPTIONS")
+	protectedRouter.HandleFunc("/pets/{id:[0-9]+}/medical-records", handlers.PetMedicalRecordsHandler).Methods("GET", "POST", "OPTIONS")
+	protectedRouter.HandleFunc("/pets/{id:[0-9]+}/treatments", handlers.PetTreatmentsHandler).Methods("GET", "POST", "OPTIONS")
+	protectedRouter.HandleFunc("/pets/{id:[0-9]+}/vaccinations", handlers.PetVaccinationsHandler).Methods("GET", "POST", "OPTIONS")
+	protectedRouter.HandleFunc("/pets/{id:[0-9]+}/changelog", handlers.PetChangelogHandler).Methods("GET", "OPTIONS")
 
 	// Breeds (Породы) - доступны всем авторизованным пользователям
 	protectedRouter.HandleFunc("/breeds", handlers.AdminBreedsHandler).Methods("GET", "OPTIONS")
@@ -71,7 +75,7 @@ func main() {
 		port = "9000"
 	}
 
-	fmt.Printf("🐾 Owner Cabinet API starting on port %s\n", port)
+	fmt.Printf("🐾 Volunteer Cabinet API starting on port %s\n", port)
 	fmt.Println("📊 Dashboard: http://localhost:4000")
 	fmt.Printf("🔗 Gateway: %s\n", gatewayURL)
 	log.Fatal(http.ListenAndServe(":"+port, router))
@@ -113,10 +117,10 @@ func corsMiddleware(next http.Handler) http.Handler {
 
 func handleRoot(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, `{"message": "ЗооПлатформа - Кабинет владельца API", "version": "0.1.0"}`)
+	fmt.Fprintf(w, `{"message": "ЗооПлатформа - Кабинет зоопомощника API", "version": "0.1.0"}`)
 }
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, `{"status": "ok", "service": "owner-cabinet-api"}`)
+	fmt.Fprintf(w, `{"status": "ok", "service": "volunteer-cabinet-api"}`)
 }

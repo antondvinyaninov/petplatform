@@ -86,8 +86,116 @@ export default function PetIdentification({
 
       {/* Владелец или Куратор */}
       <div>
-        {pet.owner_id ? (
-          // Если есть владелец - показываем только владельца
+        {pet.relationship === 'curator' ? (
+          // Если куратор - показываем "Владелец: Нет" и "Куратор: Антон"
+          <div className="space-y-4">
+            {/* Владелец */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Владелец</h3>
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-6 border border-gray-200">
+                <div className="text-center py-6">
+                  <div className="text-5xl mb-3">👤</div>
+                  <p className="text-gray-600 font-medium">Владелец не указан</p>
+                  <p className="text-sm text-gray-500 mt-1">Питомец находится под опекой куратора</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Куратор */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Куратор (зоопомощник)</h3>
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-4">
+                    {/* Аватар */}
+                    {pet.owner_avatar ? (
+                      <img 
+                        src={pet.owner_avatar} 
+                        alt={pet.owner_name}
+                        className="w-16 h-16 rounded-full object-cover shadow-lg border-2 border-white"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-3xl text-white shadow-lg">
+                        🤝
+                      </div>
+                    )}
+                    
+                    {/* Информация */}
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900 mb-1">
+                        {pet.owner_name}
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        ID пользователя: <span className="font-mono font-semibold">#{pet.owner_id}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Дополнительная информация о кураторе */}
+                {pet.owner_bio && (
+                  <div className="mb-3 p-3 bg-white/50 rounded-md">
+                    <p className="text-gray-700 text-sm italic">"{pet.owner_bio}"</p>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  {pet.owner_email && (
+                    <div className="flex items-center gap-2 text-gray-700">
+                      <span className="text-lg">📧</span>
+                      <a href={`mailto:${pet.owner_email}`} className="hover:text-blue-600 transition-colors">
+                        {pet.owner_email}
+                      </a>
+                    </div>
+                  )}
+                  
+                  {pet.owner_phone && (
+                    <div className="flex items-center gap-2 text-gray-700">
+                      <span className="text-lg">📱</span>
+                      <a href={`tel:${pet.owner_phone}`} className="hover:text-blue-600 transition-colors">
+                        {pet.owner_phone}
+                      </a>
+                    </div>
+                  )}
+
+                  {pet.owner_role && (
+                    <div className="flex items-center gap-2 text-gray-700">
+                      <span className="text-lg">🎭</span>
+                      <span className="text-sm">
+                        {pet.owner_role === 'superadmin' && 'Суперадминистратор'}
+                        {pet.owner_role === 'admin' && 'Администратор'}
+                        {pet.owner_role === 'user' && 'Пользователь'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Кнопки перехода в профиль */}
+                <div className="mt-4 pt-4 border-t border-blue-200 flex gap-3">
+                  <a
+                    href={`https://zooplatforma.ru/id${pet.owner_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-md hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md"
+                  >
+                    <span>🌐</span>
+                    <span>Публичный профиль</span>
+                    <span>↗</span>
+                  </a>
+                  <a
+                    href={`/users/${pet.owner_id}`}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors"
+                  >
+                    <span>⚙️</span>
+                    <span>Управление</span>
+                    <span>→</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          // Если владелец - показываем только владельца
           <>
             <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Владелец</h3>
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
@@ -179,115 +287,6 @@ export default function PetIdentification({
               </div>
             </div>
           </>
-        ) : (
-          // Если нет владельца - показываем "не указан" + куратора (если есть)
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Владелец</h3>
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-6 border border-gray-200">
-                <div className="text-center py-6">
-                  <div className="text-5xl mb-3">👤</div>
-                  <p className="text-gray-600 font-medium">Владелец не указан</p>
-                  <p className="text-sm text-gray-500 mt-1">Питомец не привязан к владельцу</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Куратор (показываем только если нет владельца) */}
-            {pet.curator_id && (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Куратор</h3>
-                <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-6 border border-purple-200">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-4">
-                      {/* Аватар */}
-                      {pet.curator_avatar ? (
-                        <img 
-                          src={pet.curator_avatar} 
-                          alt={pet.curator_name}
-                          className="w-16 h-16 rounded-full object-cover shadow-lg border-2 border-white"
-                        />
-                      ) : (
-                        <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-3xl text-white shadow-lg">
-                          🔧
-                        </div>
-                      )}
-                      
-                      {/* Информация */}
-                      <div>
-                        <h4 className="text-xl font-bold text-gray-900 mb-1">
-                          {pet.curator_name}
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          ID пользователя: <span className="font-mono font-semibold">#{pet.curator_id}</span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Дополнительная информация о кураторе */}
-                  {pet.curator_bio && (
-                    <div className="mb-3 p-3 bg-white/50 rounded-md">
-                      <p className="text-gray-700 text-sm italic">"{pet.curator_bio}"</p>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    {pet.curator_email && (
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <span className="text-lg">📧</span>
-                        <a href={`mailto:${pet.curator_email}`} className="hover:text-purple-600 transition-colors">
-                          {pet.curator_email}
-                        </a>
-                      </div>
-                    )}
-                    
-                    {pet.curator_phone && (
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <span className="text-lg">📱</span>
-                        <a href={`tel:${pet.curator_phone}`} className="hover:text-purple-600 transition-colors">
-                          {pet.curator_phone}
-                        </a>
-                      </div>
-                    )}
-
-                    {pet.curator_role && (
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <span className="text-lg">🎭</span>
-                        <span className="text-sm">
-                          {pet.curator_role === 'superadmin' && 'Суперадминистратор'}
-                          {pet.curator_role === 'admin' && 'Администратор'}
-                          {pet.curator_role === 'user' && 'Пользователь'}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Кнопки перехода в профиль */}
-                  <div className="mt-4 pt-4 border-t border-purple-200 flex gap-3">
-                    <a
-                      href={`https://zooplatforma.ru/id${pet.curator_id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-md hover:from-purple-700 hover:to-pink-700 transition-all shadow-md"
-                    >
-                      <span>🌐</span>
-                      <span>Публичный профиль</span>
-                      <span>↗</span>
-                    </a>
-                    <a
-                      href={`/users/${pet.curator_id}`}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-purple-600 text-purple-600 rounded-md hover:bg-purple-50 transition-colors"
-                    >
-                      <span>⚙️</span>
-                      <span>Управление</span>
-                      <span>→</span>
-                    </a>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
         )}
       </div>
 

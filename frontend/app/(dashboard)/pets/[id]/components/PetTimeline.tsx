@@ -183,7 +183,9 @@ export default function PetTimeline({ petId, pet }: PetTimelineProps) {
                   <div className="mb-2 space-y-1">
                     {event.metadata.owner && (
                       <p className="text-sm text-gray-600">
-                        <span className="font-medium">Владелец:</span> {event.metadata.owner}
+                        <span className="font-medium">
+                          {pet.relationship === 'curator' ? 'Куратор:' : 'Владелец:'}
+                        </span> {event.metadata.owner}
                       </p>
                     )}
                     {event.metadata.species && (

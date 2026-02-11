@@ -224,8 +224,6 @@ gateway/
 Архитектура: Микросервисы + API Gateway
 Технологии: Go 1.25, PostgreSQL, Next.js
 Деплой: Easypanel (Docker)
-Репозиторий: github.com/antondvinyaninov/zooplatforma
-Ветка: gateway
 ```
 
 ### Важные правила
@@ -448,7 +446,6 @@ Gateway логирует все запросы:
 5. Проверить подключение к БД
 
 **Полезные ссылки:**
-- GitHub: https://github.com/antondvinyaninov/zooplatforma
 - Easypanel: http://88.218.121.213:3000
 - Gateway: https://my-projects-gateway-zp.crv1ic.easypanel.host
 

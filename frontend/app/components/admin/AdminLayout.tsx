@@ -98,7 +98,10 @@ export default function AdminLayout({
             <h1 className="flex items-center gap-3 text-base font-medium text-gray-900 m-0">
               <img src={logoSrc} alt={logoAlt} className="w-7 h-7" />
               {adminUser && (
-                <span className="text-sm font-bold text-gray-900">{getUserFullName()}</span>
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-gray-900">{getUserFullName()}</span>
+                  <span className="text-xs text-gray-500">Зоопомощник</span>
+                </div>
               )}
             </h1>
           </div>

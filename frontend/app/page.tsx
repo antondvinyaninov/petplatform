@@ -10,6 +10,10 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    document.title = 'Кабинет зоопомощника - ЗооПлатформа';
+  }, []);
+
+  useEffect(() => {
     checkAuth();
   }, []);
 
@@ -39,6 +43,17 @@ export default function HomePage() {
     const firstInitial = user.first_name?.[0] || '';
     const lastInitial = user.last_name?.[0] || '';
     return (firstInitial + lastInitial).toUpperCase();
+  };
+
+  // Функция для обработки клика на кнопку "Начать использовать"
+  const handleGetStarted = () => {
+    if (user) {
+      // Если пользователь авторизован - перенаправляем в кабинет
+      router.push('/pets');
+    } else {
+      // Если не авторизован - на страницу авторизации
+      router.push('/auth');
+    }
   };
 
   return (
@@ -80,7 +95,7 @@ export default function HomePage() {
               </button>
             ) : (
               <button
-                onClick={() => router.push('/auth')}
+                onClick={handleGetStarted}
                 className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
               >
                 Войти в кабинет
@@ -100,21 +115,21 @@ export default function HomePage() {
             </div>
             
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-4">
-              Кабинет владельца{' '}
+              Кабинет{' '}
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                животных
+                зоопомощника
               </span>
             </h1>
             
             <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              Храните всю информацию о ваших питомцах в одном месте
+              Управляйте информацией о ваших подопечных питомцах
             </p>
 
             <button
-              onClick={() => router.push('/auth')}
+              onClick={handleGetStarted}
               className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-lg rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl font-medium"
             >
-              Начать использовать
+              {user ? 'Перейти в кабинет' : 'Начать использовать'}
             </button>
           </div>
 
@@ -126,10 +141,10 @@ export default function HomePage() {
                 <HeartIcon className="w-8 h-8 text-blue-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                Цифровой паспорт животного
+                Карточки подопечных
               </h3>
               <p className="text-gray-600">
-                Создавайте подробные паспорта для каждого питомца с фото, породой, возрастом и особенностями
+                Создавайте подробные карточки для каждого подопечного с фото, породой, возрастом и особенностями
               </p>
             </div>
 
@@ -178,10 +193,10 @@ export default function HomePage() {
                 <MagnifyingGlassIcon className="w-8 h-8 text-orange-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                Быстрый поиск
+                Ежедневный уход
               </h3>
               <p className="text-gray-600">
-                Находите нужную информацию о питомце за секунды
+                Отмечайте кормление, выгул и другие важные моменты в уходе за подопечными
               </p>
             </div>
 
@@ -193,10 +208,10 @@ export default function HomePage() {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                Хронология жизни
+                История изменений
               </h3>
               <p className="text-gray-600">
-                Полная хронология жизни вашего любимца с важными событиями и датами
+                Полная хронология жизни подопечного с важными событиями и датами
               </p>
             </div>
           </div>
@@ -207,13 +222,13 @@ export default function HomePage() {
               Готовы начать?
             </h2>
             <p className="text-xl mb-8 text-blue-100">
-              Создайте аккаунт и добавьте своих питомцев прямо сейчас
+              Начните помогать животным уже сегодня
             </p>
             <button
-              onClick={() => router.push('/auth')}
+              onClick={handleGetStarted}
               className="px-8 py-4 bg-white text-blue-600 text-lg rounded-xl hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl font-semibold"
             >
-              Войти в кабинет
+              {user ? 'Перейти в кабинет' : 'Войти в кабинет'}
             </button>
           </div>
         </div>
@@ -223,8 +238,8 @@ export default function HomePage() {
       <footer className="py-8 border-t border-gray-200 bg-white/50 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center text-gray-600">
-            <p className="mb-2">© 2026 ЗооПлатформа. Кабинет владельца животных.</p>
-            <p className="text-sm text-gray-500">Храните всю информацию о ваших питомцах в безопасности</p>
+            <p className="mb-2">© 2026 ЗооПлатформа. Кабинет зоопомощника.</p>
+            <p className="text-sm text-gray-500">Помогайте животным и ведите учёт ваших подопечных</p>
           </div>
         </div>
       </footer>

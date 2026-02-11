@@ -1,11 +1,11 @@
-# ЗооПлатформа - Админ-панель
+# ЗооПлатформа - Кабинет зоопомощника
 
-Панель администратора для управления платформой ЗооПлатформа.
+Кабинет для волонтёров и зоопомощников платформы ЗооПлатформа.
 
 ## Архитектура
 
 ```
-Admin Frontend (4000) → Admin Backend (9000) → Gateway (80) → Main Service / Other Services
+Volunteer Frontend (4000) → Volunteer Backend (9000) → Gateway (80) → Main Service / Other Services
 ```
 
 ## Установка

@@ -1,280 +1,286 @@
-# ЗооПлатформа - Кабинет владельца животных
+# 🐾 ЗооПлатформа - Кабинет зоопомощника
 
-Веб-приложение для владельцев домашних животных, позволяющее хранить всю информацию о питомцах в одном месте: медицинские записи, фотографии, документы и историю жизни.
+> Сервис для волонтёров и зоопомощников, которые ухаживают за питомцами в приютах и организациях
 
-## 🎯 Основные возможности
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/zooplatforma/volunteer-cabinet)
+[![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go)](https://golang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://reactjs.org/)
 
-- **Цифровой паспорт животного** - подробная карточка каждого питомца с фото, породой, возрастом
-- **Медицинские записи** - история прививок, обработок, посещений ветеринара
-- **Загрузка фото** - фотографии питомцев до 15MB с автоматическим сохранением в S3
-- **Хронология жизни** - полная история изменений и важных событий
-- **SSO авторизация** - единая авторизация через Gateway API
-- **Удобный поиск** - фильтры по виду животного, поиск по имени
+---
+
+## 📋 Описание
+
+**Кабинет зоопомощника** - это веб-приложение для волонтёров, которые помогают животным в приютах, клиниках и других организациях. Сервис позволяет вести учёт подопечных питомцев, отмечать ежедневный уход, хранить медицинские записи и координировать работу с другими волонтёрами.
+
+### Кто такие зоопомощники?
+
+- 🐕 Волонтёры приютов
+- 🏥 Помощники в ветклиниках
+- 🤝 Кураторы питомцев
+- 💚 Люди, помогающие бездомным животным
+
+---
+
+## ✨ Основной функционал
+
+### 🐾 Мои подопечные
+- Список питомцев, за которыми вы ухаживаете
+- Подробные карточки с фото и информацией
+- Быстрый доступ к важным данным
+
+### 📋 Ежедневный уход (планируется)
+- Отметки о кормлении и выгуле
+- Заметки о поведении
+- Контроль веса и самочувствия
+
+### 💉 Здоровье
+- Медицинские записи
+- История прививок
+- Обработки от паразитов
+- Напоминания о предстоящих процедурах
+
+### 📸 Фото и документы
+- Загрузка фото питомцев
+- Хранение документов
+- Идентификация (чип, бирка, клеймо)
+
+---
 
 ## 🏗️ Архитектура
 
 ```
-┌─────────────┐      ┌──────────────┐      ┌─────────────┐
-│   Browser   │─────▶│   Next.js    │─────▶│  Backend    │
-│  (Frontend) │      │  (Port 4000) │      │  (Port 9000)│
-└─────────────┘      └──────────────┘      └──────┬──────┘
-                                                   │
-                                                   ▼
-                                            ┌─────────────┐
-                                            │  Gateway    │
-                                            │     API     │
-                                            └──────┬──────┘
-                                                   │
-                                    ┌──────────────┼──────────────┐
-                                    ▼              ▼              ▼
-                              ┌──────────┐  ┌──────────┐  ┌──────────┐
-                              │PostgreSQL│  │    S3    │  │   Auth   │
-                              └──────────┘  └──────────┘  └──────────┘
+┌─────────────────────────┐
+│  Volunteer Frontend     │
+│  (Next.js, Port 4000)   │
+└───────────┬─────────────┘
+            │
+            ▼
+┌─────────────────────────┐
+│  Volunteer Backend      │
+│  (Go, Port 9000)        │
+└───────────┬─────────────┘
+            │
+            ▼
+┌─────────────────────────┐
+│  Gateway API            │
+│  (Port 80)              │
+└───────────┬─────────────┘
+            │
+            ├──────────────────┐
+            ▼                  ▼
+┌─────────────────┐  ┌─────────────────┐
+│  PetID Service  │  │  Main Service   │
+│  (Pets data)    │  │  (Users, etc)   │
+└─────────────────┘  └─────────────────┘
 ```
 
-## 🛠️ Технологии
+---
 
-### Backend
-- **Go 1.21+** - основной язык
-- **Gorilla Mux** - HTTP роутер
-- **JWT** - аутентификация через Gateway
-
-### Frontend
-- **Next.js 16** (App Router) - React фреймворк
-- **TypeScript** - типизация
-- **Tailwind CSS** - стилизация
-- **Heroicons** - иконки
-
-### Инфраструктура
-- **PostgreSQL** - база данных (через Gateway)
-- **S3** - хранилище фото (через Gateway)
-- **Gateway API** - единая точка доступа к данным
-
-## 📦 Установка и запуск
+## 🚀 Быстрый старт
 
 ### Требования
 - Go 1.21+
 - Node.js 18+
-- Доступ к Gateway API
+- npm или yarn
 
-### Backend
+### 1. Клонировать репозиторий
+```bash
+git clone https://github.com/zooplatforma/volunteer-cabinet.git
+cd volunteer-cabinet
+```
 
+### 2. Запустить Backend
 ```bash
 cd backend
-
-# Создайте .env файл
 cp .env.example .env
-
-# Отредактируйте .env:
-# PORT=9000
-# GATEWAY_URL=https://api.zooplatforma.ru
-# JWT_SECRET=your-secret-key
-# CORS_ORIGINS=http://localhost:4000
-
-# Установите зависимости
-go mod download
-
-# Запустите сервер
+# Отредактируйте .env файл
 go run main.go
 ```
 
 Backend запустится на `http://localhost:9000`
 
-**Production URL:** `https://owner.zooplatforma.ru`
-
-### Frontend
-
+### 3. Запустить Frontend
 ```bash
 cd frontend
-
-# Установите зависимости
 npm install
-
-# Создайте .env.local файл
-cp .env.example .env.local
-
-# Отредактируйте .env.local:
-# ADMIN_API_URL=http://localhost:9000
-
-# Запустите dev сервер
 npm run dev
 ```
 
 Frontend запустится на `http://localhost:4000`
 
-**Production URL:** `https://owner.zooplatforma.ru`
-
-## 🔧 Разработка
-
-### Hot Reload для Backend
-
-```bash
-cd backend
-
-# Установите Air
-go install github.com/cosmtrek/air@latest
-
-# Запустите с hot reload
-air
+### 4. Открыть в браузере
+```
+http://localhost:4000
 ```
 
-### Frontend Development
+Подробная инструкция: [QUICKSTART.md](QUICKSTART.md)
 
-```bash
-cd frontend
-
-# Development mode
-npm run dev
-
-# Build для production
-npm run build
-
-# Запуск production сборки
-npm start
-```
+---
 
 ## 📁 Структура проекта
 
 ```
-.
-├── backend/
-│   ├── handlers/           # HTTP обработчики
-│   │   ├── auth.go        # Аутентификация
-│   │   ├── pets.go        # Управление питомцами
-│   │   ├── media.go       # Загрузка фото
-│   │   └── breeds.go      # Породы животных
-│   ├── middleware/        # Middleware
-│   │   ├── auth.go        # JWT проверка
-│   │   └── gateway.go     # Gateway клиент
-│   └── main.go            # Точка входа
+volunteer-cabinet/
+├── backend/              # Go API сервер
+│   ├── handlers/        # HTTP handlers
+│   ├── middleware/      # Middleware (auth, gateway)
+│   └── main.go         # Точка входа
 │
-├── frontend/
-│   ├── app/
-│   │   ├── (dashboard)/   # Защищенные страницы
-│   │   │   ├── pets/      # Список и карточки питомцев
-│   │   │   └── layout.tsx # Layout с навигацией
-│   │   ├── api/           # Next.js API routes (прокси)
-│   │   ├── auth/          # Страница авторизации
-│   │   └── page.tsx       # Главная страница
-│   └── lib/
-│       └── api.ts         # API клиент
+├── frontend/            # Next.js приложение
+│   ├── app/            # Next.js App Router
+│   │   ├── (dashboard)/ # Защищённые страницы
+│   │   ├── auth/       # Авторизация
+│   │   └── page.tsx    # Главная страница
+│   └── lib/            # Утилиты
 │
-└── README.md
+└── docs/               # Документация
+    ├── VOLUNTEER_CABINET.md  # Концепция
+    ├── CHANGES.md           # Изменения
+    ├── QUICKSTART.md        # Быстрый старт
+    ├── PETID.md            # PetID сервис
+    └── DATABASE_SCHEMA.md  # Схема БД
 ```
 
-## 🔐 Аутентификация
+---
 
-Приложение использует SSO через Gateway API:
-
-1. Пользователь вводит email/пароль на `/auth`
-2. Данные отправляются на Gateway `/api/auth/login`
-3. Gateway возвращает JWT токен в cookie `auth_token`
-4. Токен используется для всех последующих запросов
-5. Backend проверяет токен через Gateway `/api/auth/verify`
-
-## 📡 API Endpoints
-
-### Аутентификация
-- `GET /api/admin/auth/me` - Получить текущего пользователя
-- `POST /api/admin/auth/logout` - Выход из системы
+## 🔌 API Endpoints
 
 ### Питомцы
-- `GET /api/admin/pets` - Список питомцев текущего пользователя
-- `POST /api/admin/pets` - Создать питомца
-- `GET /api/admin/pets/:id` - Получить питомца
-- `PUT /api/admin/pets/:id` - Обновить питомца
-- `POST /api/admin/pets/:id/photo` - Загрузить фото питомца
+```
+GET    /api/admin/pets              # Список подопечных
+POST   /api/admin/pets              # Добавить подопечного
+GET    /api/admin/pets/:id          # Карточка питомца
+PUT    /api/admin/pets/:id          # Обновить данные
+DELETE /api/admin/pets/:id          # Удалить питомца
+POST   /api/admin/pets/:id/photo    # Загрузить фото
+```
 
 ### Породы
-- `GET /api/admin/breeds` - Список пород животных
+```
+GET    /api/admin/breeds            # Список пород
+```
 
-## 🔒 Безопасность
+### Авторизация
+```
+GET    /api/admin/auth/me           # Текущий пользователь
+POST   /api/admin/auth/logout       # Выход
+```
 
-- Все запросы требуют авторизации через JWT
-- Пользователи видят только своих питомцев
-- Запрещено изменение `owner_id` и `curator_id`
-- CORS настроен только для разрешенных доменов
-- Фото загружаются через защищенный Gateway API
+Полная документация API: [PETID_API_DOCUMENTATION.md](PETID_API_DOCUMENTATION.md)
 
-## 🚀 Деплой
+---
+
+## 🔐 Авторизация
+
+Система использует JWT токены через cookie `auth_token`.
+
+### Роли пользователей:
+- `user` - обычный пользователь
+- `curator` - зоопомощник (волонтёр) ⭐
+- `admin` - администратор
+- `superadmin` - суперадминистратор
+
+При создании питомца автоматически устанавливается `relationship: 'curator'`, что означает что текущий пользователь становится куратором питомца.
+
+---
+
+## 💻 Технологии
 
 ### Backend
-
-```bash
-cd backend
-
-# Build
-go build -o owner-cabinet main.go
-
-# Run
-./owner-cabinet
-```
+- **Go 1.21+** - язык программирования
+- **net/http** - HTTP сервер
+- **gorilla/mux** - роутинг
+- **golang-jwt** - JWT токены
 
 ### Frontend
+- **Next.js 16** - React фреймворк
+- **React 19** - UI библиотека
+- **TypeScript** - типизация
+- **Tailwind CSS 4** - стилизация
+- **Heroicons** - иконки
 
-```bash
-cd frontend
+### База данных
+- **PostgreSQL 15** - реляционная БД
+- **PetID Service** - Single Source of Truth для питомцев
 
-# Build
-npm run build
+---
 
-# Start
-npm start
-```
+## 📚 Документация
 
-### Docker (опционально)
+- [VOLUNTEER_CABINET.md](VOLUNTEER_CABINET.md) - Полное описание концепции
+- [QUICKSTART.md](QUICKSTART.md) - Быстрый старт
+- [CHANGES.md](CHANGES.md) - История изменений
+- [PETID.md](PETID.md) - Документация PetID сервиса
+- [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) - Схема базы данных
+- [PETID_API_DOCUMENTATION.md](PETID_API_DOCUMENTATION.md) - API документация
 
-```bash
-# Backend
-docker build -t owner-cabinet-backend ./backend
-docker run -p 9000:9000 --env-file backend/.env owner-cabinet-backend
+---
 
-# Frontend
-docker build -t owner-cabinet-frontend ./frontend
-docker run -p 4000:4000 owner-cabinet-frontend
-```
+## 🎯 Roadmap
 
-## 📝 Переменные окружения
+### Фаза 1 (Февраль 2026) ✅
+- [x] Переименование проекта
+- [x] Адаптация интерфейса для волонтёров
+- [x] Изменение дефолтной роли на curator
+- [x] Обновление документации
 
-### Backend (.env)
+### Фаза 2 (Март 2026)
+- [ ] Ежедневный уход (кормление, выгул)
+- [ ] Заметки о поведении
+- [ ] Календарь ухода
+- [ ] Фильтрация по curator_id
 
-```env
-PORT=9000                                    # Порт backend сервера
-GATEWAY_URL=https://api.zooplatforma.ru     # URL Gateway API
-JWT_SECRET=your-secret-key                   # Секрет для JWT (должен совпадать с Gateway)
-CORS_ORIGINS=https://owner.zooplatforma.ru  # Разрешенные домены для CORS
-```
+### Фаза 3 (Апрель 2026)
+- [ ] Напоминания о прививках/обработках
+- [ ] Статистика по подопечным
+- [ ] Экспорт данных
+- [ ] Мобильная версия
 
-### Frontend (.env.local)
+### Фаза 4 (Май 2026)
+- [ ] Чат с другими волонтёрами
+- [ ] Координация выгулов
+- [ ] Система задач
+- [ ] Геймификация (достижения)
 
-```env
-ADMIN_API_URL=http://localhost:9000         # URL backend API
-```
+---
 
-## 🐛 Отладка
+## 🤝 Вклад в проект
 
-### Логирование Backend
+Мы приветствуем вклад в развитие проекта!
 
-Backend выводит подробные логи всех операций:
-- 🔐 Аутентификация
-- 📝 Запросы к Gateway
-- 📸 Загрузка фото
-- ✅ Успешные операции
-- ❌ Ошибки
+### Как помочь:
+1. Fork репозитория
+2. Создайте ветку для вашей фичи (`git checkout -b feature/amazing-feature`)
+3. Commit изменений (`git commit -m 'Add amazing feature'`)
+4. Push в ветку (`git push origin feature/amazing-feature`)
+5. Откройте Pull Request
 
-### Логирование Frontend
+---
 
-Откройте консоль браузера (F12) для просмотра:
-- API запросов
-- Ошибок загрузки
-- Состояния компонентов
+## 📝 Лицензия
 
-## 📄 Лицензия
+© 2026 ЗооПлатформа. Все права защищены.
 
-Proprietary - ЗооПлатформа © 2026
+---
 
-## 👥 Контакты
+## 📞 Контакты
 
-Для вопросов и поддержки: https://zooplatforma.ru
+**Вопросы и предложения:**
+- Email: dev@zooplatforma.ru
+- Telegram: @zooplatforma_dev
 
-**Production:** https://owner.zooplatforma.ru
+**Основной сайт:**
+- https://zooplatforma.ru
+
+---
+
+## 🙏 Благодарности
+
+Спасибо всем волонтёрам и зоопомощникам, которые помогают животным! Этот проект создан специально для вас. 💚
+
+---
+
+**Кабинет зоопомощника - помогаем тем, кто помогает животным.**
+
+*Последнее обновление: 11 февраля 2026*

@@ -25,6 +25,11 @@ export default function PetsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  // Устанавливаем title страницы
+  useEffect(() => {
+    document.title = 'Мои подопечные - Кабинет зоопомощника';
+  }, []);
+  
   // Фильтры
   const [speciesFilter, setSpeciesFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -42,7 +47,7 @@ export default function PetsPage() {
     approximate_months: 0,
     gender: 'male',
     description: '',
-    relationship: 'owner' as 'owner' | 'curator',
+    relationship: 'curator' as 'owner' | 'curator',
   });
   const [saving, setSaving] = useState(false);
   const [breeds, setBreeds] = useState<any[]>([]);
@@ -69,6 +74,7 @@ export default function PetsPage() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Полный ответ от API:', data);
         console.log('Загружены питомцы:', data.pets?.length, 'шт.');
         setPets(data.pets || []);
       } else {
@@ -136,7 +142,7 @@ export default function PetsPage() {
           approximate_months: 0,
           gender: 'male',
           description: '',
-          relationship: 'owner',
+          relationship: 'curator',
         });
         setSpeciesFilter('all');
         setSearchQuery('');
@@ -242,14 +248,14 @@ export default function PetsPage() {
     <div className="p-6">
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Мои питомцы</h1>
-          <p className="text-gray-600 mt-2">Управление вашими питомцами</p>
+          <h1 className="text-2xl font-bold text-gray-900">Мои подопечные</h1>
+          <p className="text-gray-600 mt-2">Питомцы, за которыми вы ухаживаете</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          + Добавить питомца
+          + Добавить подопечного
         </button>
       </div>
 
@@ -395,7 +401,7 @@ export default function PetsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-gray-900 mb-4">
-              Добавить питомца
+              Добавить подопечного
             </h2>
             
             <div className="space-y-4">
@@ -629,7 +635,7 @@ export default function PetsPage() {
                     approximate_months: 0,
                     gender: 'male',
                     description: '',
-                    relationship: 'owner',
+                    relationship: 'curator',
                   });
                 }}
                 disabled={saving}

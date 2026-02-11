@@ -66,7 +66,7 @@ export default function DashboardLayout({
   const tabs: AdminTab[] = [
     {
       id: 'pets',
-      label: 'Мои питомцы',
+      label: 'Мои подопечные',
       icon: <HeartIcon className="w-5 h-5" />,
     },
   ];
@@ -104,7 +104,7 @@ export default function DashboardLayout({
     <AdminLayout
       logoSrc="/logo.svg"
       logoText="ЗооПлатформа"
-      logoAlt="ЗооПлатформа - Кабинет владельца"
+      logoAlt="ЗооПлатформа - Кабинет зоопомощника"
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={handleTabChange}

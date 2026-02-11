@@ -1,42 +1,40 @@
 version: '3.8'
 
 services:
-  backend:
+  # Volunteer Cabinet (Frontend + Backend в одном контейнере)
+  volunteer-cabinet:
     build:
       context: .
       dockerfile: Dockerfile
-      target: backend-runtime
-    container_name: owner-cabinet-backend
+      args:
+        - NEXT_PUBLIC_GATEWAY_URL=https://api.zooplatforma.ru
+        - NEXT_PUBLIC_ENVIRONMENT=production
+    container_name: volunteer-cabinet
+    restart: unless-stopped
     ports:
-      - "9000:9000"
+      - "4000:3000"  # Frontend
+      - "9000:9000"  # Backend
     environment:
-      - PORT=9000
-      - GATEWAY_URL=${GATEWAY_URL:-https://api.zooplatforma.ru}
+      # Backend environment
+      - GATEWAY_URL=https://api.zooplatforma.ru
       - JWT_SECRET=${JWT_SECRET}
-      - CORS_ORIGINS=http://localhost:4000
-    env_file:
-      - backend/.env
-    restart: unless-stopped
+      - PORT=9000
+      - ENVIRONMENT=production
+      - CORS_ORIGINS=https://pethelper.zooplatforma.ru,https://api.zooplatforma.ru,https://zooplatforma.ru
+      # Frontend environment
+      - ADMIN_API_URL=http://localhost:9000
+      - NEXT_PUBLIC_API_URL=
+      - NEXT_PUBLIC_GATEWAY_URL=https://api.zooplatforma.ru
+      - NEXT_PUBLIC_ENVIRONMENT=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     networks:
-      - owner-network
-
-  frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: frontend-runtime
-    container_name: owner-cabinet-frontend
-    ports:
-      - "4000:4000"
-    environment:
-      - ADMIN_API_URL=http://backend:9000
-      - NODE_ENV=production
-    depends_on:
-      - backend
-    restart: unless-stopped
-    networks:
-      - owner-network
+      - volunteer-network
 
 networks:
-  owner-network:
+  volunteer-network:
     driver: bridge

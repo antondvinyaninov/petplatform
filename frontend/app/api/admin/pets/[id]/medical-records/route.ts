@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:9000';
+const ADMIN_API_URL = process.env.ADMIN_API_URL || 'http://localhost:9000';
 
 export async function GET(
   request: NextRequest,
@@ -9,7 +9,7 @@ export async function GET(
   const { id } = await params;
   
   try {
-    const response = await fetch(`${GATEWAY_URL}/api/petid/pets/${id}/medical-records`, {
+    const response = await fetch(`${ADMIN_API_URL}/api/admin/pets/${id}/medical-records`, {
       headers: {
         'Cookie': request.headers.get('cookie') || '',
       },
@@ -35,7 +35,7 @@ export async function POST(
   try {
     const body = await request.json();
     
-    const response = await fetch(`${GATEWAY_URL}/api/petid/pets/${id}/medical-records`, {
+    const response = await fetch(`${ADMIN_API_URL}/api/admin/pets/${id}/medical-records`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

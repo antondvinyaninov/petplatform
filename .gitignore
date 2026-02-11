@@ -1,14 +1,18 @@
-# Logs
-*.log
-backend.log
-frontend.log
+# Markdown files
+*.md
 
 # Environment files
 .env
 .env.local
-.env.development
-.env.production
-!.env.example
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+backend.log
+frontend.log
 
 # OS files
 .DS_Store
@@ -19,38 +23,32 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+*~
 
-# Backend (Go)
-backend/tmp/
-backend/*.exe
-backend/*.dll
-backend/*.so
-backend/*.dylib
-backend/test
-backend/coverage.txt
-backend/coverage.html
+# Dependencies
+node_modules/
+vendor/
 
-# Frontend (Next.js)
-frontend/.next/
-frontend/out/
-frontend/node_modules/
-frontend/build/
-frontend/dist/
-frontend/.turbo/
-frontend/tsconfig.tsbuildinfo
-
-# Documentation (exclude from repo)
-*.md
-!README.md
-!CHANGELOG.md
-
-# Build artifacts
+# Build outputs
 dist/
 build/
-*.tar.gz
-*.zip
+.next/
+out/
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
 
 # Temporary files
 tmp/
 temp/
 *.tmp
+
+# Docker
+docker-compose.override.yml

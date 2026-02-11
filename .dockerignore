@@ -1,17 +1,19 @@
+# Markdown files
+*.md
+
 # Git
 .git
 .gitignore
+
+# Environment files
+.env
+.env.*
+!.env.example
 
 # Logs
 *.log
 backend.log
 frontend.log
-
-# Environment files (будут монтироваться отдельно)
-.env
-.env.local
-.env.development
-.env.production
 
 # OS files
 .DS_Store
@@ -23,30 +25,36 @@ Thumbs.db
 *.swp
 *.swo
 
-# Backend
-backend/tmp/
-backend/*.exe
-backend/*.dll
-backend/*.so
-backend/*.dylib
+# Dependencies (will be installed during build)
+node_modules
+vendor
 
-# Frontend
-frontend/.next/
-frontend/out/
-frontend/node_modules/
-frontend/build/
-frontend/dist/
-frontend/.turbo/
+# Build outputs (will be created during build)
+.next
+dist
+build
+out
 
-# Documentation
-*.md
-!README.md
+# Go
+*.exe
+*.test
+*.out
 
 # Temporary files
-tmp/
-temp/
+tmp
+temp
 *.tmp
 
-# Build artifacts
-dist/
-build/
+# Docker
+docker-compose.yml
+docker-compose.override.yml
+Dockerfile
+
+# Backend specific
+backend/.air.toml
+backend/tmp
+
+# Frontend specific
+frontend/.next
+frontend/node_modules
+frontend/out
