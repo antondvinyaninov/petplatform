@@ -142,14 +142,32 @@ func PostsProxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Загружаем данные питомцев для постов
+	log.Printf("🔍 [Posts] Checking for pets data in response for %s", r.URL.Path)
+
 	if data, ok := response["data"]; ok {
 		switch posts := data.(type) {
 		case []interface{}:
 			// Массив постов
+			log.Printf("📦 [Posts] Found array of %d posts", len(posts))
 			loadPetsForPosts(posts)
 		case map[string]interface{}:
 			// Один пост
+			log.Printf("📦 [Posts] Found single post")
 			loadPetsForPost(posts)
+		default:
+			log.Printf("⚠️  [Posts] Unknown data type: %T", data)
+		}
+	} else {
+		// Возможно посты в корне ответа (без data)
+		if posts, ok := response["posts"].([]interface{}); ok {
+			log.Printf("📦 [Posts] Found posts array in root: %d posts", len(posts))
+			loadPetsForPosts(posts)
+		} else if _, ok := response["id"]; ok {
+			// Это может быть один пост в корне
+			log.Printf("📦 [Posts] Found single post in root")
+			loadPetsForPost(response)
+		} else {
+			log.Printf("⚠️  [Posts] No data or posts field found in response")
 		}
 	}
 
@@ -184,9 +202,12 @@ func loadPetsForPosts(posts []interface{}) {
 
 // loadPetsForPost загружает данные питомцев для одного поста
 func loadPetsForPost(post map[string]interface{}) {
+	postID := post["id"]
+
 	// Проверяем есть ли attached_pets
 	attachedPets, ok := post["attached_pets"]
 	if !ok || attachedPets == nil {
+		log.Printf("🔍 [Posts] Post %v: no attached_pets field", postID)
 		return
 	}
 
@@ -205,14 +226,19 @@ func loadPetsForPost(post map[string]interface{}) {
 	}
 
 	if len(petIDs) == 0 {
+		log.Printf("🔍 [Posts] Post %v: attached_pets is empty", postID)
 		return
 	}
+
+	log.Printf("🔍 [Posts] Post %v: loading %d pets: %v", postID, len(petIDs), petIDs)
 
 	// Загружаем данные питомцев из БД
 	pets := loadPetsByIDs(petIDs)
 	if len(pets) > 0 {
 		post["pets"] = pets
-		log.Printf("📦 [Posts] Loaded %d pets for post %v", len(pets), post["id"])
+		log.Printf("✅ [Posts] Post %v: loaded %d pets successfully", postID, len(pets))
+	} else {
+		log.Printf("⚠️  [Posts] Post %v: failed to load pets", postID)
 	}
 }
 
