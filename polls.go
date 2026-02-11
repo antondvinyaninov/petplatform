@@ -480,8 +480,8 @@ func getPollByPostID(postID int, userID int) (*Poll, error) {
 
 					if err := votersRows.Scan(&voterID, &voterName, &voterAvatar); err == nil {
 						voter := map[string]interface{}{
-							"id":   voterID,
-							"name": voterName,
+							"user_id":   voterID,
+							"user_name": voterName,
 						}
 						if voterAvatar.Valid {
 							voter["avatar"] = voterAvatar.String
