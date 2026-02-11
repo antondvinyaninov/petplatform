@@ -67,6 +67,9 @@ func SetupRouter() *mux.Router {
 	// Activity stats endpoint (требует авторизацию)
 	apiRouter.HandleFunc("/activity/stats", ActivityStatsHandler).Methods("GET", "OPTIONS")
 
+	// Pets endpoints (должны быть ПЕРЕД общим /pets/*)
+	apiRouter.HandleFunc("/pets/user/{id:[0-9]+}", GetUserPetsHandler).Methods("GET", "OPTIONS")
+
 	// Media upload endpoints (должны быть ПЕРЕД общим /media/*)
 	apiRouter.HandleFunc("/media/upload/pet-photo", UploadPetPhotoHandler).Methods("POST", "OPTIONS")
 

@@ -527,8 +527,11 @@ func GetUserPetsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := `
-		SELECT id, user_id, name, species, breed, age, gender, 
-		       avatar, description, created_at
+		SELECT 
+			id, user_id, name, species, breed, gender, birth_date,
+			color, size, photo, status, city, region, urgent,
+			story, contact_name, contact_phone, 
+			organization_id, created_at
 		FROM pets
 		WHERE user_id = $1
 		ORDER BY created_at DESC
@@ -545,14 +548,20 @@ func GetUserPetsHandler(w http.ResponseWriter, r *http.Request) {
 	pets := []map[string]interface{}{}
 	for rows.Next() {
 		var id int
-		var petUserID sql.NullInt64 // Изменено: поддержка NULL значений
-		var name, species string
-		var breed, gender, avatar, description sql.NullString
-		var age sql.NullInt64
+		var petUserID sql.NullInt64
+		var name, species, status string
+		var breed, gender, birthDate, color, size, photo sql.NullString
+		var city, region, story, contactName, contactPhone sql.NullString
+		var organizationID sql.NullInt64
+		var urgent bool
 		var createdAt time.Time
 
-		err := rows.Scan(&id, &petUserID, &name, &species, &breed, &age, &gender,
-			&avatar, &description, &createdAt)
+		err := rows.Scan(
+			&id, &petUserID, &name, &species, &breed, &gender, &birthDate,
+			&color, &size, &photo, &status, &city, &region, &urgent,
+			&story, &contactName, &contactPhone,
+			&organizationID, &createdAt,
+		)
 		if err != nil {
 			log.Printf("❌ Failed to scan pet: %v", err)
 			continue
@@ -562,30 +571,49 @@ func GetUserPetsHandler(w http.ResponseWriter, r *http.Request) {
 			"id":         id,
 			"name":       name,
 			"species":    species,
+			"status":     status,
+			"urgent":     urgent,
 			"created_at": createdAt,
 		}
 
-		// Добавляем user_id только если он не NULL
 		if petUserID.Valid {
 			pet["user_id"] = petUserID.Int64
-		} else {
-			pet["user_id"] = nil
 		}
-
 		if breed.Valid {
 			pet["breed"] = breed.String
-		}
-		if age.Valid {
-			pet["age"] = age.Int64
 		}
 		if gender.Valid {
 			pet["gender"] = gender.String
 		}
-		if avatar.Valid {
-			pet["avatar"] = avatar.String
+		if birthDate.Valid {
+			pet["birth_date"] = birthDate.String
 		}
-		if description.Valid {
-			pet["description"] = description.String
+		if color.Valid {
+			pet["color"] = color.String
+		}
+		if size.Valid {
+			pet["size"] = size.String
+		}
+		if photo.Valid {
+			pet["photo"] = photo.String
+		}
+		if city.Valid {
+			pet["city"] = city.String
+		}
+		if region.Valid {
+			pet["region"] = region.String
+		}
+		if story.Valid {
+			pet["story"] = story.String
+		}
+		if contactName.Valid {
+			pet["contact_name"] = contactName.String
+		}
+		if contactPhone.Valid {
+			pet["contact_phone"] = contactPhone.String
+		}
+		if organizationID.Valid {
+			pet["organization_id"] = organizationID.Int64
 		}
 
 		pets = append(pets, pet)
