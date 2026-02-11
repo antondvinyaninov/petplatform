@@ -126,19 +126,18 @@ func VotePollHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Пытаемся получить allow_vote_changes если поле существует
+	// Пытаемся получить allow_vote_changes
 	var allowVoteChanges bool = true // По умолчанию разрешаем изменения
 	var allowVoteChangesNull sql.NullBool
-	db.QueryRow(`
-		SELECT CASE WHEN EXISTS(
-			SELECT 1 FROM information_schema.columns 
-			WHERE table_name = 'polls' AND column_name = 'allow_vote_changes'
-		) THEN (SELECT allow_vote_changes FROM polls WHERE id = $1)
-		ELSE NULL END
+	err = db.QueryRow(`
+		SELECT allow_vote_changes FROM polls WHERE id = $1
 	`, pollID).Scan(&allowVoteChangesNull)
 
-	if allowVoteChangesNull.Valid {
+	if err == nil && allowVoteChangesNull.Valid {
 		allowVoteChanges = allowVoteChangesNull.Bool
+		log.Printf("📊 [Polls] Poll %d: allow_vote_changes=%v (from DB)", pollID, allowVoteChanges)
+	} else {
+		log.Printf("📊 [Polls] Poll %d: allow_vote_changes=%v (default, field may not exist)", pollID, allowVoteChanges)
 	}
 
 	// Проверка что опрос не истек
@@ -366,50 +365,65 @@ func DeletePollVoteHandler(w http.ResponseWriter, r *http.Request) {
 func getPollByPostID(postID int, userID int) (*Poll, error) {
 	poll := &Poll{}
 
-	// Получаем информацию об опросе
-	// Используем только поля которые точно существуют
+	log.Printf("🗳️  [Polls] Getting poll for post_id=%d, user_id=%d", postID, userID)
+
+	// Сначала пытаемся получить все поля включая опциональные
 	var expiresAt sql.NullTime
+	var allowVoteChanges sql.NullBool
+	var isAnonymous sql.NullBool
+
 	err := db.QueryRow(`
 		SELECT id, post_id, question, 
 		       COALESCE(multiple_choice, false) as multiple_choice,
+		       allow_vote_changes,
+		       is_anonymous,
 		       expires_at
 		FROM polls 
 		WHERE post_id = $1
 	`, postID).Scan(
 		&poll.ID, &poll.PostID, &poll.Question,
-		&poll.MultipleChoice, &expiresAt,
+		&poll.MultipleChoice, &allowVoteChanges, &isAnonymous, &expiresAt,
 	)
 
+	// Если ошибка из-за отсутствующих колонок, пробуем без них
 	if err != nil {
-		return nil, err
-	}
+		log.Printf("⚠️  [Polls] Failed to read with optional fields, trying basic query: %v", err)
 
-	// Устанавливаем значения по умолчанию для полей которых может не быть
-	poll.AllowVoteChanges = true // По умолчанию разрешаем изменять голос
-	poll.IsAnonymous = false     // По умолчанию опросы не анонимные
+		err = db.QueryRow(`
+			SELECT id, post_id, question, 
+			       COALESCE(multiple_choice, false) as multiple_choice,
+			       expires_at
+			FROM polls 
+			WHERE post_id = $1
+		`, postID).Scan(
+			&poll.ID, &poll.PostID, &poll.Question,
+			&poll.MultipleChoice, &expiresAt,
+		)
 
-	// Пытаемся получить дополнительные поля если они есть
-	var allowVoteChanges sql.NullBool
-	var isAnonymous sql.NullBool
-	db.QueryRow(`
-		SELECT 
-			CASE WHEN EXISTS(
-				SELECT 1 FROM information_schema.columns 
-				WHERE table_name = 'polls' AND column_name = 'allow_vote_changes'
-			) THEN (SELECT allow_vote_changes FROM polls WHERE id = $1)
-			ELSE NULL END as allow_vote_changes,
-			CASE WHEN EXISTS(
-				SELECT 1 FROM information_schema.columns 
-				WHERE table_name = 'polls' AND column_name = 'is_anonymous'
-			) THEN (SELECT is_anonymous FROM polls WHERE id = $1)
-			ELSE NULL END as is_anonymous
-	`, poll.ID).Scan(&allowVoteChanges, &isAnonymous)
+		if err != nil {
+			return nil, err
+		}
 
-	if allowVoteChanges.Valid {
-		poll.AllowVoteChanges = allowVoteChanges.Bool
-	}
-	if isAnonymous.Valid {
-		poll.IsAnonymous = isAnonymous.Bool
+		// Устанавливаем значения по умолчанию
+		poll.AllowVoteChanges = true
+		poll.IsAnonymous = false
+		log.Printf("📊 [Polls] Poll %d: allow_vote_changes=true (default), is_anonymous=false (default)", poll.ID)
+	} else {
+		// Успешно прочитали все поля
+		if allowVoteChanges.Valid {
+			poll.AllowVoteChanges = allowVoteChanges.Bool
+		} else {
+			poll.AllowVoteChanges = true
+		}
+
+		if isAnonymous.Valid {
+			poll.IsAnonymous = isAnonymous.Bool
+		} else {
+			poll.IsAnonymous = false
+		}
+
+		log.Printf("📊 [Polls] Poll %d: allow_vote_changes=%v (from DB), is_anonymous=%v (from DB)",
+			poll.ID, poll.AllowVoteChanges, poll.IsAnonymous)
 	}
 
 	if expiresAt.Valid {
