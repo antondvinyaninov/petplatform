@@ -75,7 +75,8 @@ COPY --from=frontend-builder /app/frontend/next.config.ts /app/frontend/
 COPY --from=backend-builder /app/backend/main /app/backend/main
 
 # Создаем конфигурацию supervisor
-RUN echo '[supervisord]' > /etc/supervisor/conf.d/supervisord.conf && \
+RUN mkdir -p /etc/supervisor/conf.d && \
+    echo '[supervisord]' > /etc/supervisor/conf.d/supervisord.conf && \
     echo 'nodaemon=true' >> /etc/supervisor/conf.d/supervisord.conf && \
     echo 'user=root' >> /etc/supervisor/conf.d/supervisord.conf && \
     echo 'logfile=/var/log/supervisor/supervisord.log' >> /etc/supervisor/conf.d/supervisord.conf && \
