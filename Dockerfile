@@ -96,7 +96,7 @@ autostart=true
 autorestart=true
 stderr_logfile=/var/log/supervisor/frontend.err.log
 stdout_logfile=/var/log/supervisor/frontend.out.log
-environment=ADMIN_API_URL="%(ENV_ADMIN_API_URL)s",NEXT_PUBLIC_API_URL="%(ENV_NEXT_PUBLIC_API_URL)s",NEXT_PUBLIC_GATEWAY_URL="%(ENV_NEXT_PUBLIC_GATEWAY_URL)s",NEXT_PUBLIC_ENVIRONMENT="%(ENV_NEXT_PUBLIC_ENVIRONMENT)s"
+environment=ADMIN_API_URL="%(ENV_ADMIN_API_URL)s",NEXT_PUBLIC_GATEWAY_URL="%(ENV_NEXT_PUBLIC_GATEWAY_URL)s",NEXT_PUBLIC_ENVIRONMENT="%(ENV_NEXT_PUBLIC_ENVIRONMENT)s"
 EOF
 
 # Expose порты
