@@ -1032,17 +1032,36 @@ func UpdatePetHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Парсим тело запроса
 	var req struct {
-		Name              *string `json:"name"`
-		SpeciesID         *int    `json:"species_id"`
-		BreedID           *int    `json:"breed_id"`
-		BirthDate         *string `json:"birth_date"`
-		AgeType           *string `json:"age_type"`
-		ApproximateYears  *int    `json:"approximate_years"`
-		ApproximateMonths *int    `json:"approximate_months"`
-		Gender            *string `json:"gender"`
-		Description       *string `json:"description"`
-		Relationship      *string `json:"relationship"`
-		PhotoURL          *string `json:"photo_url"`
+		Name              *string  `json:"name"`
+		SpeciesID         *int     `json:"species_id"`
+		BreedID           *int     `json:"breed_id"`
+		BirthDate         *string  `json:"birth_date"`
+		AgeType           *string  `json:"age_type"`
+		ApproximateYears  *int     `json:"approximate_years"`
+		ApproximateMonths *int     `json:"approximate_months"`
+		Gender            *string  `json:"gender"`
+		Description       *string  `json:"description"`
+		Relationship      *string  `json:"relationship"`
+		PhotoURL          *string  `json:"photo_url"`
+		Color             *string  `json:"color"`
+		Fur               *string  `json:"fur"`
+		Ears              *string  `json:"ears"`
+		Tail              *string  `json:"tail"`
+		Size              *string  `json:"size"`
+		SpecialMarks      *string  `json:"special_marks"`
+		MarkingDate       *string  `json:"marking_date"`
+		TagNumber         *string  `json:"tag_number"`
+		BrandNumber       *string  `json:"brand_number"`
+		ChipNumber        *string  `json:"chip_number"`
+		LocationType      *string  `json:"location_type"`
+		LocationAddress   *string  `json:"location_address"`
+		LocationCage      *string  `json:"location_cage"`
+		LocationContact   *string  `json:"location_contact"`
+		LocationPhone     *string  `json:"location_phone"`
+		LocationNotes     *string  `json:"location_notes"`
+		Weight            *float64 `json:"weight"`
+		SterilizationDate *string  `json:"sterilization_date"`
+		HealthNotes       *string  `json:"health_notes"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -1153,6 +1172,101 @@ func UpdatePetHandler(w http.ResponseWriter, r *http.Request) {
 		args = append(args, *req.PhotoURL)
 		argIndex++
 	}
+	if req.Color != nil {
+		updates = append(updates, fmt.Sprintf("color = $%d", argIndex))
+		args = append(args, *req.Color)
+		argIndex++
+	}
+	if req.Fur != nil {
+		updates = append(updates, fmt.Sprintf("fur = $%d", argIndex))
+		args = append(args, *req.Fur)
+		argIndex++
+	}
+	if req.Ears != nil {
+		updates = append(updates, fmt.Sprintf("ears = $%d", argIndex))
+		args = append(args, *req.Ears)
+		argIndex++
+	}
+	if req.Tail != nil {
+		updates = append(updates, fmt.Sprintf("tail = $%d", argIndex))
+		args = append(args, *req.Tail)
+		argIndex++
+	}
+	if req.Size != nil {
+		updates = append(updates, fmt.Sprintf("size = $%d", argIndex))
+		args = append(args, *req.Size)
+		argIndex++
+	}
+	if req.SpecialMarks != nil {
+		updates = append(updates, fmt.Sprintf("special_marks = $%d", argIndex))
+		args = append(args, *req.SpecialMarks)
+		argIndex++
+	}
+	if req.MarkingDate != nil {
+		updates = append(updates, fmt.Sprintf("marking_date = $%d", argIndex))
+		args = append(args, *req.MarkingDate)
+		argIndex++
+	}
+	if req.TagNumber != nil {
+		updates = append(updates, fmt.Sprintf("tag_number = $%d", argIndex))
+		args = append(args, *req.TagNumber)
+		argIndex++
+	}
+	if req.BrandNumber != nil {
+		updates = append(updates, fmt.Sprintf("brand_number = $%d", argIndex))
+		args = append(args, *req.BrandNumber)
+		argIndex++
+	}
+	if req.ChipNumber != nil {
+		updates = append(updates, fmt.Sprintf("chip_number = $%d", argIndex))
+		args = append(args, *req.ChipNumber)
+		argIndex++
+	}
+	if req.LocationType != nil {
+		updates = append(updates, fmt.Sprintf("location_type = $%d", argIndex))
+		args = append(args, *req.LocationType)
+		argIndex++
+	}
+	if req.LocationAddress != nil {
+		updates = append(updates, fmt.Sprintf("location_address = $%d", argIndex))
+		args = append(args, *req.LocationAddress)
+		argIndex++
+	}
+	if req.LocationCage != nil {
+		updates = append(updates, fmt.Sprintf("location_cage = $%d", argIndex))
+		args = append(args, *req.LocationCage)
+		argIndex++
+	}
+	if req.LocationContact != nil {
+		updates = append(updates, fmt.Sprintf("location_contact = $%d", argIndex))
+		args = append(args, *req.LocationContact)
+		argIndex++
+	}
+	if req.LocationPhone != nil {
+		updates = append(updates, fmt.Sprintf("location_phone = $%d", argIndex))
+		args = append(args, *req.LocationPhone)
+		argIndex++
+	}
+	if req.LocationNotes != nil {
+		updates = append(updates, fmt.Sprintf("location_notes = $%d", argIndex))
+		args = append(args, *req.LocationNotes)
+		argIndex++
+	}
+	if req.Weight != nil {
+		updates = append(updates, fmt.Sprintf("weight = $%d", argIndex))
+		args = append(args, *req.Weight)
+		argIndex++
+	}
+	if req.SterilizationDate != nil {
+		updates = append(updates, fmt.Sprintf("sterilization_date = $%d", argIndex))
+		args = append(args, *req.SterilizationDate)
+		argIndex++
+	}
+	if req.HealthNotes != nil {
+		updates = append(updates, fmt.Sprintf("health_notes = $%d", argIndex))
+		args = append(args, *req.HealthNotes)
+		argIndex++
+	}
 
 	if len(updates) == 0 {
 		respondError(w, "No fields to update", http.StatusBadRequest)
@@ -1169,7 +1283,12 @@ func UpdatePetHandler(w http.ResponseWriter, r *http.Request) {
 		WHERE id = $%d AND user_id = $%d
 		RETURNING id, name, species_id, breed_id, user_id, birth_date,
 		          age_type, approximate_years, approximate_months,
-		          gender, description, relationship, created_at`,
+		          gender, description, relationship, created_at, photo_url,
+		          color, fur, ears, tail, size, special_marks,
+		          marking_date, tag_number, brand_number, chip_number,
+		          location_type, location_address, location_cage, location_contact,
+		          location_phone, location_notes,
+		          weight, sterilization_date, health_notes`,
 		strings.Join(updates, ", "), argIndex, argIndex+1)
 
 	log.Printf("🔍 [PetID] SQL Query: %s", query)
@@ -1189,11 +1308,36 @@ func UpdatePetHandler(w http.ResponseWriter, r *http.Request) {
 	var description sql.NullString
 	var relationship string
 	var createdAt time.Time
+	var photoURL sql.NullString
+	var color sql.NullString
+	var fur sql.NullString
+	var ears sql.NullString
+	var tail sql.NullString
+	var size sql.NullString
+	var specialMarks sql.NullString
+	var markingDate sql.NullTime
+	var tagNumber sql.NullString
+	var brandNumber sql.NullString
+	var chipNumber sql.NullString
+	var locationType sql.NullString
+	var locationAddress sql.NullString
+	var locationCage sql.NullString
+	var locationContact sql.NullString
+	var locationPhone sql.NullString
+	var locationNotes sql.NullString
+	var weight sql.NullFloat64
+	var sterilizationDate sql.NullTime
+	var healthNotes sql.NullString
 
 	err := db.QueryRow(query, args...).Scan(
 		&id, &name, &speciesID, &breedID, &returnedUserID, &birthDate,
 		&ageType, &approximateYears, &approximateMonths,
-		&gender, &description, &relationship, &createdAt,
+		&gender, &description, &relationship, &createdAt, &photoURL,
+		&color, &fur, &ears, &tail, &size, &specialMarks,
+		&markingDate, &tagNumber, &brandNumber, &chipNumber,
+		&locationType, &locationAddress, &locationCage, &locationContact,
+		&locationPhone, &locationNotes,
+		&weight, &sterilizationDate, &healthNotes,
 	)
 	if err == sql.ErrNoRows {
 		log.Printf("❌ [PetID] Pet not found or access denied: id=%s, user_id=%d", petID, userID)
@@ -1255,6 +1399,66 @@ func UpdatePetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if description.Valid {
 		pet["description"] = description.String
+	}
+	if photoURL.Valid {
+		pet["photo_url"] = photoURL.String
+	}
+	if color.Valid {
+		pet["color"] = color.String
+	}
+	if fur.Valid {
+		pet["fur"] = fur.String
+	}
+	if ears.Valid {
+		pet["ears"] = ears.String
+	}
+	if tail.Valid {
+		pet["tail"] = tail.String
+	}
+	if size.Valid {
+		pet["size"] = size.String
+	}
+	if specialMarks.Valid {
+		pet["special_marks"] = specialMarks.String
+	}
+	if markingDate.Valid {
+		pet["marking_date"] = markingDate.Time
+	}
+	if tagNumber.Valid {
+		pet["tag_number"] = tagNumber.String
+	}
+	if brandNumber.Valid {
+		pet["brand_number"] = brandNumber.String
+	}
+	if chipNumber.Valid {
+		pet["chip_number"] = chipNumber.String
+	}
+	if locationType.Valid {
+		pet["location_type"] = locationType.String
+	}
+	if locationAddress.Valid {
+		pet["location_address"] = locationAddress.String
+	}
+	if locationCage.Valid {
+		pet["location_cage"] = locationCage.String
+	}
+	if locationContact.Valid {
+		pet["location_contact"] = locationContact.String
+	}
+	if locationPhone.Valid {
+		pet["location_phone"] = locationPhone.String
+	}
+	if locationNotes.Valid {
+		pet["location_notes"] = locationNotes.String
+	}
+	if weight.Valid {
+		pet["weight"] = weight.Float64
+	}
+	if sterilizationDate.Valid {
+		pet["sterilization_date"] = sterilizationDate.Time
+	}
+	if healthNotes.Valid {
+		pet["health_notes"] = healthNotes.String
 	}
 
 	duration := time.Since(startTime)
