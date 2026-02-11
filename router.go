@@ -70,6 +70,10 @@ func SetupRouter() *mux.Router {
 	// Pets endpoints (должны быть ПЕРЕД общим /pets/*)
 	apiRouter.HandleFunc("/pets/user/{id:[0-9]+}", GetUserPetsHandler).Methods("GET", "OPTIONS")
 
+	// Polls endpoints (должны быть ПЕРЕД общим /polls/*)
+	apiRouter.HandleFunc("/polls/{id:[0-9]+}/vote", VotePollHandler).Methods("POST", "OPTIONS")
+	apiRouter.HandleFunc("/polls/{id:[0-9]+}/vote", DeletePollVoteHandler).Methods("DELETE", "OPTIONS")
+
 	// Media upload endpoints (должны быть ПЕРЕД общим /media/*)
 	apiRouter.HandleFunc("/media/upload/pet-photo", UploadPetPhotoHandler).Methods("POST", "OPTIONS")
 
