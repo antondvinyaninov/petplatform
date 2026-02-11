@@ -44,8 +44,8 @@ func SetupRouter() *mux.Router {
 	publicApiRouter.Use(RateLimitMiddleware)
 	// Публичный просмотр профилей пользователей (для SEO)
 	publicApiRouter.HandleFunc("/users/{id:[0-9]+}", ProxyHandler(mainService).ServeHTTP).Methods("GET", "OPTIONS")
-	// Публичный просмотр постов пользователя (для SEO)
-	publicApiRouter.HandleFunc("/posts/user/{id:[0-9]+}", ProxyHandler(mainService).ServeHTTP).Methods("GET", "OPTIONS")
+	// Публичный просмотр постов пользователя (для SEO) - с загрузкой питомцев
+	publicApiRouter.HandleFunc("/posts/user/{id:[0-9]+}", PostsProxyHandler).Methods("GET", "OPTIONS")
 	// Публичный просмотр комментариев к посту (для SEO)
 	publicApiRouter.HandleFunc("/comments/post/{id:[0-9]+}", ProxyHandler(mainService).ServeHTTP).Methods("GET", "OPTIONS")
 	// Публичный просмотр организаций (для SEO и админки)
