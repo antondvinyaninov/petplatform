@@ -22,10 +22,12 @@ ARG NEXT_PUBLIC_ENVIRONMENT=production
 
 ENV NEXT_PUBLIC_GATEWAY_URL=$NEXT_PUBLIC_GATEWAY_URL
 ENV NEXT_PUBLIC_ENVIRONMENT=$NEXT_PUBLIC_ENVIRONMENT
-ENV NEXT_PUBLIC_API_URL=
 
 # Собираем Next.js приложение
 RUN npm run build
+
+# Удаляем devDependencies и устанавливаем только production
+RUN npm prune --production
 
 # ============================================
 # Stage 2: Build Backend (Go)
@@ -72,39 +74,37 @@ COPY --from=frontend-builder /app/frontend/next.config.ts /app/frontend/
 # Копируем собранный backend из builder
 COPY --from=backend-builder /app/backend/main /app/backend/main
 
-# Копируем конфигурацию supervisor
-COPY <<EOF /etc/supervisor/conf.d/supervisord.conf
-[supervisord]
-nodaemon=true
-user=root
-logfile=/var/log/supervisor/supervisord.log
-pidfile=/var/run/supervisord.pid
-
-[program:backend]
-command=/app/backend/main
-directory=/app/backend
-autostart=true
-autorestart=true
-stderr_logfile=/var/log/supervisor/backend.err.log
-stdout_logfile=/var/log/supervisor/backend.out.log
-environment=GATEWAY_URL="%(ENV_GATEWAY_URL)s",JWT_SECRET="%(ENV_JWT_SECRET)s",PORT="%(ENV_PORT)s",ENVIRONMENT="%(ENV_ENVIRONMENT)s",CORS_ORIGINS="%(ENV_CORS_ORIGINS)s"
-
-[program:frontend]
-command=node_modules/.bin/next start -p 3000
-directory=/app/frontend
-autostart=true
-autorestart=true
-stderr_logfile=/var/log/supervisor/frontend.err.log
-stdout_logfile=/var/log/supervisor/frontend.out.log
-environment=ADMIN_API_URL="%(ENV_ADMIN_API_URL)s",NEXT_PUBLIC_GATEWAY_URL="%(ENV_NEXT_PUBLIC_GATEWAY_URL)s",NEXT_PUBLIC_ENVIRONMENT="%(ENV_NEXT_PUBLIC_ENVIRONMENT)s"
-EOF
+# Создаем конфигурацию supervisor
+RUN echo '[supervisord]' > /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'nodaemon=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'user=root' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'logfile=/var/log/supervisor/supervisord.log' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'pidfile=/var/run/supervisord.pid' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo '' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo '[program:backend]' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'command=/app/backend/main' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'directory=/app/backend' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'autostart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'autorestart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'stderr_logfile=/var/log/supervisor/backend.err.log' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'stdout_logfile=/var/log/supervisor/backend.out.log' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'environment=GATEWAY_URL="%(ENV_GATEWAY_URL)s",JWT_SECRET="%(ENV_JWT_SECRET)s",PORT="%(ENV_PORT)s",ENVIRONMENT="%(ENV_ENVIRONMENT)s",CORS_ORIGINS="%(ENV_CORS_ORIGINS)s"' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo '' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo '[program:frontend]' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'command=/app/frontend/node_modules/.bin/next start -p 3000' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'directory=/app/frontend' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'autostart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'autorestart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'stderr_logfile=/var/log/supervisor/frontend.err.log' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'stdout_logfile=/var/log/supervisor/frontend.out.log' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'environment=ADMIN_API_URL="%(ENV_ADMIN_API_URL)s",NEXT_PUBLIC_GATEWAY_URL="%(ENV_NEXT_PUBLIC_GATEWAY_URL)s",NEXT_PUBLIC_ENVIRONMENT="%(ENV_NEXT_PUBLIC_ENVIRONMENT)s"' >> /etc/supervisor/conf.d/supervisord.conf
 
 # Expose порты
 EXPOSE 3000 9000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:3000/api/health || exit 1
+  CMD curl -f http://localhost:3000/ || exit 1
 
 # Запускаем supervisor
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
