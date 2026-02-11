@@ -74,6 +74,9 @@ func SetupRouter() *mux.Router {
 	apiRouter.HandleFunc("/polls/{id:[0-9]+}/vote", VotePollHandler).Methods("POST", "OPTIONS")
 	apiRouter.HandleFunc("/polls/{id:[0-9]+}/vote", DeletePollVoteHandler).Methods("DELETE", "OPTIONS")
 
+	// Публичный endpoint для получения опроса (без авторизации, но с опциональным user_id)
+	publicApiRouter.HandleFunc("/polls/post/{post_id:[0-9]+}", GetPollByPostIDHandler).Methods("GET", "OPTIONS")
+
 	// Media upload endpoints (должны быть ПЕРЕД общим /media/*)
 	apiRouter.HandleFunc("/media/upload/pet-photo", UploadPetPhotoHandler).Methods("POST", "OPTIONS")
 
