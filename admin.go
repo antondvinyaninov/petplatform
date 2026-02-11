@@ -528,13 +528,29 @@ func GetUserPetsHandler(w http.ResponseWriter, r *http.Request) {
 
 	query := `
 		SELECT 
-			id, user_id, name, species, breed, gender, birth_date,
-			color, size, photo, status, city, region, urgent,
-			story, contact_name, contact_phone, 
-			organization_id, created_at
-		FROM pets
-		WHERE user_id = $1
-		ORDER BY created_at DESC
+			p.id,
+			p.name,
+			p.birth_date,
+			p.age_type,
+			p.approximate_years,
+			p.approximate_months,
+			p.gender,
+			p.description,
+			p.relationship,
+			p.created_at,
+			p.photo_url,
+			s.name as species_name,
+			s.id as species_id,
+			b.name as breed_name,
+			b.id as breed_id,
+			u.name as owner_name,
+			u.id as owner_id
+		FROM pets p
+		LEFT JOIN species s ON p.species_id = s.id
+		LEFT JOIN breeds b ON p.breed_id = b.id
+		LEFT JOIN users u ON p.user_id = u.id
+		WHERE p.user_id = $1
+		ORDER BY p.created_at DESC
 	`
 
 	rows, err := db.Query(query, userID)
@@ -545,22 +561,31 @@ func GetUserPetsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	pets := []map[string]interface{}{}
+	pets := make([]map[string]interface{}, 0)
 	for rows.Next() {
 		var id int
-		var petUserID sql.NullInt64
-		var name, species, status string
-		var breed, gender, birthDate, color, size, photo sql.NullString
-		var city, region, story, contactName, contactPhone sql.NullString
-		var organizationID sql.NullInt64
-		var urgent bool
+		var name string
+		var birthDate sql.NullTime
+		var ageType sql.NullString
+		var approximateYears sql.NullInt64
+		var approximateMonths sql.NullInt64
+		var gender sql.NullString
+		var description sql.NullString
+		var relationship sql.NullString
 		var createdAt time.Time
+		var photoURL sql.NullString
+		var speciesName sql.NullString
+		var speciesID sql.NullInt64
+		var breedName sql.NullString
+		var breedID sql.NullInt64
+		var ownerName sql.NullString
+		var ownerID sql.NullInt64
 
 		err := rows.Scan(
-			&id, &petUserID, &name, &species, &breed, &gender, &birthDate,
-			&color, &size, &photo, &status, &city, &region, &urgent,
-			&story, &contactName, &contactPhone,
-			&organizationID, &createdAt,
+			&id, &name, &birthDate, &ageType, &approximateYears, &approximateMonths,
+			&gender, &description, &relationship, &createdAt, &photoURL,
+			&speciesName, &speciesID, &breedName, &breedID,
+			&ownerName, &ownerID,
 		)
 		if err != nil {
 			log.Printf("❌ Failed to scan pet: %v", err)
@@ -570,50 +595,50 @@ func GetUserPetsHandler(w http.ResponseWriter, r *http.Request) {
 		pet := map[string]interface{}{
 			"id":         id,
 			"name":       name,
-			"species":    species,
-			"status":     status,
-			"urgent":     urgent,
 			"created_at": createdAt,
 		}
 
-		if petUserID.Valid {
-			pet["user_id"] = petUserID.Int64
+		if birthDate.Valid {
+			pet["birth_date"] = birthDate.Time
 		}
-		if breed.Valid {
-			pet["breed"] = breed.String
+		if ageType.Valid {
+			pet["age_type"] = ageType.String
+		}
+		if approximateYears.Valid {
+			pet["approximate_years"] = approximateYears.Int64
+		}
+		if approximateMonths.Valid {
+			pet["approximate_months"] = approximateMonths.Int64
 		}
 		if gender.Valid {
 			pet["gender"] = gender.String
 		}
-		if birthDate.Valid {
-			pet["birth_date"] = birthDate.String
+		if description.Valid {
+			pet["description"] = description.String
 		}
-		if color.Valid {
-			pet["color"] = color.String
+		if relationship.Valid {
+			pet["relationship"] = relationship.String
 		}
-		if size.Valid {
-			pet["size"] = size.String
+		if photoURL.Valid {
+			pet["photo_url"] = photoURL.String
 		}
-		if photo.Valid {
-			pet["photo"] = photo.String
+		if speciesName.Valid {
+			pet["species_name"] = speciesName.String
 		}
-		if city.Valid {
-			pet["city"] = city.String
+		if speciesID.Valid {
+			pet["species_id"] = speciesID.Int64
 		}
-		if region.Valid {
-			pet["region"] = region.String
+		if breedName.Valid {
+			pet["breed_name"] = breedName.String
 		}
-		if story.Valid {
-			pet["story"] = story.String
+		if breedID.Valid {
+			pet["breed_id"] = breedID.Int64
 		}
-		if contactName.Valid {
-			pet["contact_name"] = contactName.String
+		if ownerName.Valid {
+			pet["owner_name"] = ownerName.String
 		}
-		if contactPhone.Valid {
-			pet["contact_phone"] = contactPhone.String
-		}
-		if organizationID.Valid {
-			pet["organization_id"] = organizationID.Int64
+		if ownerID.Valid {
+			pet["owner_id"] = ownerID.Int64
 		}
 
 		pets = append(pets, pet)
