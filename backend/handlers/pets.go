@@ -161,7 +161,25 @@ func AdminPetHandler(w http.ResponseWriter, r *http.Request) {
 		delete(body, "owner_id")
 		delete(body, "curator_id")
 
+		// Конвертируем пустые строки в null для числовых полей
+		if weight, ok := body["weight"].(string); ok && weight == "" {
+			body["weight"] = nil
+		}
+		// Конвертируем пустые даты в null
+		if markingDate, ok := body["marking_date"].(string); ok && markingDate == "" {
+			body["marking_date"] = nil
+		}
+		if sterilizationDate, ok := body["sterilization_date"].(string); ok && sterilizationDate == "" {
+			body["sterilization_date"] = nil
+		}
+
+		fmt.Printf("📝 [Pet Update] Sending to Gateway: %+v\n", body)
 		data, err = client.Put(endpoint, body)
+		if err != nil {
+			fmt.Printf("❌ [Pet Update] Gateway error: %v\n", err)
+		} else {
+			fmt.Printf("✅ [Pet Update] Gateway response: %s\n", string(data))
+		}
 		proxyGatewayResponse(w, data, err)
 
 	case http.MethodDelete:
@@ -186,13 +204,14 @@ func AdminPetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// checkPetOwnership проверяет, является ли пользователь владельцем или куратором питомца
+// checkPetOwnership проверяет, является ли пользователь владельцем питомца (не куратором!)
 func checkPetOwnership(petData []byte, userID int) bool {
 	var response struct {
 		Success bool `json:"success"`
 		Pet     struct {
-			OwnerID   *int `json:"owner_id"`
-			CuratorID *int `json:"curator_id"`
+			OwnerID      *int   `json:"owner_id"`
+			CuratorID    *int   `json:"curator_id"`
+			Relationship string `json:"relationship"`
 		} `json:"pet"`
 	}
 
@@ -201,12 +220,11 @@ func checkPetOwnership(petData []byte, userID int) bool {
 		return false
 	}
 
-	// Проверяем, является ли пользователь владельцем или куратором
-	isOwner := response.Pet.OwnerID != nil && *response.Pet.OwnerID == userID
-	isCurator := response.Pet.CuratorID != nil && *response.Pet.CuratorID == userID
+	// В кабинете владельца проверяем только владение (owner), не кураторство
+	isOwner := response.Pet.OwnerID != nil && *response.Pet.OwnerID == userID && response.Pet.Relationship == "owner"
 
-	fmt.Printf("🔍 [checkPetOwnership] userID=%d, owner_id=%v, curator_id=%v, isOwner=%v, isCurator=%v\n",
-		userID, response.Pet.OwnerID, response.Pet.CuratorID, isOwner, isCurator)
+	fmt.Printf("🔍 [checkPetOwnership] userID=%d, owner_id=%v, relationship=%s, isOwner=%v\n",
+		userID, response.Pet.OwnerID, response.Pet.Relationship, isOwner)
 
-	return isOwner || isCurator
+	return isOwner
 }

@@ -200,13 +200,19 @@ export default function PetViewPage() {
 
     try {
       setSaving(true);
+      
+      // Удаляем поле is_sterilized перед отправкой (оно не нужно на backend)
+      const { is_sterilized, ...dataToSend } = editData;
+      
+      console.log('📤 Sending pet data:', dataToSend);
+      
       const response = await fetch(`/api/admin/pets/${petId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(editData),
+        body: JSON.stringify(dataToSend),
       });
 
       if (response.ok) {
@@ -215,6 +221,7 @@ export default function PetViewPage() {
         alert('Изменения сохранены!');
       } else {
         const data = await response.json();
+        console.error('❌ Save error:', data);
         alert('Ошибка: ' + (data.error || 'Не удалось сохранить изменения'));
       }
     } catch (err) {
