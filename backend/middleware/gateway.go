@@ -97,6 +97,9 @@ func (c *GatewayClient) Put(endpoint string, data interface{}) ([]byte, error) {
 		return nil, err
 	}
 
+	fmt.Printf("🔄 [Gateway PUT] Endpoint: %s\n", endpoint)
+	fmt.Printf("🔄 [Gateway PUT] Request body: %s\n", string(jsonData))
+
 	req, err := http.NewRequest("PUT", c.BaseURL+endpoint, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, err
@@ -119,6 +122,9 @@ func (c *GatewayClient) Put(endpoint string, data interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Printf("🔄 [Gateway PUT] Response status: %d\n", resp.StatusCode)
+	fmt.Printf("🔄 [Gateway PUT] Response body: %s\n", string(body))
 
 	if resp.StatusCode >= 400 {
 		return nil, fmt.Errorf("gateway error: %d - %s", resp.StatusCode, string(body))

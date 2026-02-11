@@ -155,8 +155,16 @@ func AdminPetHandler(w http.ResponseWriter, r *http.Request) {
 		delete(body, "curator_id")
 
 		fmt.Printf("📝 [Pet] Updating pet ID: %s by curator_id=%d\n", petID, userID)
+		fmt.Printf("📝 [Pet] Update body: %+v\n", body)
 
 		data, err = client.Put(endpoint, body)
+
+		if err != nil {
+			fmt.Printf("❌ [Pet] Update error: %v\n", err)
+		} else {
+			fmt.Printf("✅ [Pet] Update response: %s\n", string(data))
+		}
+
 		proxyGatewayResponse(w, data, err)
 
 	case http.MethodDelete:

@@ -133,9 +133,10 @@ export default function PetViewPage() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ [fetchPet] Received pet data:', data.pet);
         setPet(data.pet);
         // Инициализируем данные для редактирования
-        setEditData({
+        const petData = {
           name: data.pet.name,
           species_id: data.pet.species_id || 1,
           breed_id: data.pet.breed_id || null,
@@ -170,7 +171,8 @@ export default function PetViewPage() {
           sterilization_date: data.pet.sterilization_date ? data.pet.sterilization_date.split('T')[0] : '',
           health_notes: data.pet.health_notes || '',
           is_sterilized: !!data.pet.sterilization_date,
-        });
+        };
+        setEditData(petData);
         setBreedSearch(data.pet.breed_name || '');
         setBirthDateType(data.pet.age_type || 'exact');
       } else {
@@ -207,21 +209,35 @@ export default function PetViewPage() {
 
     try {
       setSaving(true);
+      
+      // Подготавливаем данные - заменяем пустые строки на null для числовых полей и дат
+      const dataToSend = {
+        ...editData,
+        weight: editData.weight === '' ? null : editData.weight,
+        marking_date: editData.marking_date === '' ? null : editData.marking_date,
+        sterilization_date: editData.sterilization_date === '' ? null : editData.sterilization_date,
+      };
+      
+      console.log('📝 Saving pet data:', dataToSend);
+      
       const response = await fetch(`/api/admin/pets/${petId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(editData),
+        body: JSON.stringify(dataToSend),
       });
+
+      console.log('📝 Response status:', response.status);
+      const data = await response.json();
+      console.log('📝 Response data:', data);
 
       if (response.ok) {
         await fetchPet();
         setIsEditing(false);
         alert('Изменения сохранены!');
       } else {
-        const data = await response.json();
         alert('Ошибка: ' + (data.error || 'Не удалось сохранить изменения'));
       }
     } catch (err) {
@@ -391,7 +407,7 @@ export default function PetViewPage() {
           ) : (
             <>
               <button
-                onClick={() => setIsEditing(false)}
+                onClick={handleCancel}
                 disabled={saving}
                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
               >
@@ -410,12 +426,13 @@ export default function PetViewPage() {
       </div>
 
       {/* Hero секция */}
-      <div className="mb-6">
+      <div className="mb-6" key={`hero-${pet.id}-${pet.color}-${pet.fur}`}>
         <PetHeroSection pet={pet} age={age} />
       </div>
 
       {/* Табы с контентом */}
       <PetTabs
+        key={`tabs-${pet.id}-${pet.color}-${pet.fur}-${isEditing}`}
         isEditing={isEditing}
         pet={pet}
         editData={editData}
